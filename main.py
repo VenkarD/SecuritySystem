@@ -7,23 +7,16 @@ import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-# from imutils.video import VideoStream
-
 import tensorflow as tf
+
+#from imutils.video import VideoStream
 
 import design
 
 duration = 1000  # millisecond
 freq = 440  # Hz
 
-"""prototxt = "MobileNetSSD_deploy.prototxt.txt"
-model = "MobileNetSSD_deploy.caffemodel"
-CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
-           "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
-           "dog", "horse", "motorbike", "person", "pottedplant", "sheep",
-           "sofa", "train", "tvmonitor"]
-NotHidden = {"person", "cat", "dog"}
-net = cv2.dnn.readNetFromCaffe(prototxt, model)"""
+
 global circles
 circles = []
 global isPressMarkUpButton
@@ -32,7 +25,7 @@ global isPolyCreated
 isPolyCreated = False
 
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
-                        # 0.7 - объект в кадре будет обведён рамкой, если 
+                        # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
 CLASSES_TO_DETECT = [
     1,      # person
@@ -40,6 +33,7 @@ CLASSES_TO_DETECT = [
     17      # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
    #        номер класса = номер строки, нумерация с 1
+
 
 def mouse_drawing(event, x, y, flags, params):
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -63,8 +57,6 @@ def isPixsInArea(StartX, StartY, EndX, EndY, xp, yp):
                 ret = True
     return ret
 
-
-#####begin#####
 class DetectorAPI:
     def __init__(self, path_to_ckpt, path_to_labels):
         self.detection_graph = tf.Graph()
@@ -116,7 +108,6 @@ class DetectorAPI:
         self.default_graph.close()
 #####end#####
 
-
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
@@ -124,15 +115,18 @@ class UI(QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.image = None
-
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = '../cocozoo/' + model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
         self.detector = DetectorAPI(path_to_ckpt=model_path,
                                     path_to_labels=labels_path)
-
         self.start_video()
+        self.setWindowTitle('Security System')
         self.pushButton_n1.clicked.connect(self.mark_up)
+        self.comboBox_1.currentTextChanged.connect(self.VideoOneChangeMode)
+        self.comboBox_1.currentTextChanged.connect(
+            self.VideTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_1.currentTextChanged.connect(self.VideoThreeChangeMode)
 
     def mark_up(self):
         global isPressMarkUpButton
@@ -142,47 +136,86 @@ class UI(QMainWindow, design.Ui_MainWindow):
             isPressMarkUpButton = False
 
     def start_video(self):
-        # self.v1 = Video(src=0)
-        # self.v2 = Video(src=0)
-        # self.v3 = Video(src=0)
-        self.v1 = Video(0, self.detector)  # HERE - первый аргумент - видеопоток
-        print("test1")
+        self.v1 = Video(src=0,self.detector)
+        self.v2 = Video(src=0,self.detector)
+        self.v2.stop()
+        self.v3 = Video(src=0,self.detector)
+        self.v3.stop()
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
         self.timer.start(5)
 
     def update_video(self):
-        print("test2S")
-        # c = self.v1.get_polygon_frame()
-        # cv2.imshow("main", c)
-        # c = self.v1.get_image_qt(self.v1.get_polygon_frame())
+        if self.v1.isPlay:
+            a = self.v1.get_image_qt(self.v1.get_polygon_frame())
+            self.video_1.setPixmap(a)
+        if self.v2.isPlay:
+            a = self.v2.get_image_qt(self.v2.get_polygon_frame())
+            self.video_2.setPixmap(a)
+        if self.v3.isPlay:
+            a = self.v3.get_image_qt(self.v2.get_polygon_frame())
+            self.video_3.setPixmap(a)
 
-        # c = self.v1.get_image_qt(self.v1.get_polygon_frame())
-        c = self.v1.get_image_qt(self.v1.get_polygon_frame())
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            event.accept()
+            # DetectorAPI.close()
+        else:
+            event.ignore()
 
-        self.video_1.setPixmap(c)
-        self.video_2.setPixmap(c)
-        self.video_3.setPixmap(c)
-        self.video_4.setPixmap(c)
+    def VideoOneChangeMode(self, value):
+        self.ChangeModByMod(value, self.v1)
+
+    def VideoTwoChangeMode(self, value):
+        self.ChangeModByMod(value, self.v2)
+
+    def VideoThreeChangeMode(self, value):
+        self.ChangeModByMod(value, self.v3)
+
+    def ChangeModByMod(self, value, obj):
+        if value == "Обычный режим":
+            obj.set_mode = 1
+        elif value == "Распознование людей":
+            obj.set_mode = 2
+        elif value == "Распознование движения":
+            obj.set_mode = 3
+        elif value == "Распознование границ":
+            obj.set_mode = 4
+        else:
+            print(value + " is not defind")
 
 
 class Video:
-    def __init__(self, src, detector,
-                 color1=(0, 255, 0),
-                 color2=(0, 0, 255),
-                 color3=(255, 0, 0)):
+    def __init__(self, src=0,detector=None , color=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), confidence=0.4, mode=0):
+        self.mode = mode
         self.vc = cv2.VideoCapture(src)
         self.detector = detector
         print("start")
         time.sleep(2.0)
-        self.color1 = color1
+        self.color = color
         self.color2 = color2
         self.color3 = color3
-        self.frame = self.get_frame()
+        self.isPlay = True
+        self.confidence = confidence
 
-    def get_frame(self, size=(640, 480)):
-        _, frame = self.vc.read()
-        frame = cv2.resize(frame, (640, 480))
+    def get_smart_frame(self, width=500):
+        if self.mode == 1:
+            pass
+        if self.mode == 2:
+             pass
+        if self.mode == 3:
+            pass
+        if self.mode == 4:
+            pass
+
+    def get_frame(self, width=500):
+        frame = self.vs.read()
+        if frame is None:
+            _, frame = self.vc.read()
+        frame = imutils.resize(frame, width=width)
+
         return frame
 
     # For first cam-capture
@@ -200,7 +233,7 @@ class Video:
                 d_scores.append(scores[i])
                 d_classes.append(classes[i])
         return d_boxes, d_scores, d_classes
-
+    
     def get_frame_detected(self, img=None):
         if img is None:
             img = self.get_frame()
@@ -277,7 +310,7 @@ class Video:
         p = convertToQtFormat.scaled(300, 200, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
-    """def play(self):
+    def play(self):
         self.isPlay = True
         self.vs.play()
 
@@ -285,17 +318,11 @@ class Video:
         self.isPlay = False
         self.vs.stop()
 
-    def is_alarm(self, state=None):
+    def set_mode(self, state=None):
         if state is None:
-            return self.isAlarmEnabled
+            return self.mode
         else:
-            self.isAlarmEnabled = state
-
-    def is_recognition(self, state=None):
-        if state is None:
-            return self.isPeopleRecg
-        else:
-            self.isPeopleRecg = state"""
+            self.mode = state
 
 
 def main():
@@ -303,7 +330,7 @@ def main():
     window = UI()  # Создаём объект класса ExampleApp
     window.show()  # Показываем окно
     app.exec_()  # и запускаем прило
-    # HERE !!! освободить ресурсы - DetectorAPI.close()
+
 
 if __name__ == '__main__':
     main()
