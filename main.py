@@ -121,7 +121,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
                                     path_to_labels=labels_path)
         self.start_video()
         self.setWindowTitle('Security System')
-        # self.pushButton_n1.clicked.connect(self.mark_up)  # AttributeError: 'UI' object has no attribute 'pushButton_n1'
+        self.pushButton_1.clicked.connect(self.mark_up)  # AttributeError: 'UI' object has no attribute 'pushButton_n1'
         self.comboBox_1.currentTextChanged.connect(self.VideoOneChangeMode)
         self.comboBox_1.currentTextChanged.connect(
             self.VideoTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
@@ -168,13 +168,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
         if self.v1.isPlay:
             # a = self.v1.get_image_qt(self.v1.get_polygon_frame())  # не рисует прямоугольники
-            a = self.v1.get_image_qt(self.v1.get_frame_detected())  # рисует прямоугольники
+            a = self.v1.get_image_qt(self.v1.get_smart_frame())  # рисует прямоугольники
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_polygon_frame())
+            a = self.v2.get_image_qt(self.v2.get_smart_frame())
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v2.get_polygon_frame())
+            a = self.v3.get_image_qt(self.v2.get_smart_frame())
             self.video_3.setPixmap(a)
 
     def closeEvent(self, event):
@@ -226,14 +226,13 @@ class Video:
 
     def get_smart_frame(self, width=500):
         if self.mode == 1:
-            pass
+           return self.get_frame()
         if self.mode == 2:
-            pass
+           return self.get_frame_detected()
         if self.mode == 3:
-            pass
+           return self.get_frame()
         if self.mode == 4:
-            pass
-
+           return self.get_polygon_frame()
     def get_frame(self, width=500):
         # WORK VERSION
         frame = self.vs.read()
