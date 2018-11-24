@@ -208,13 +208,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
     @staticmethod
     def change_mod_by_mod(value, obj):
         if value == "Обычный режим":
-            obj.set_mode = cameramode.ORIGINAL
+            obj.mode = cameramode.ORIGINAL
         elif value == "Распознование людей":
-            obj.set_mode = cameramode.DETECT_OBJECTS
+            obj.mode = cameramode.DETECT_OBJECTS
         elif value == "Распознование движения":
-            obj.set_mode = cameramode.DETECT_MOTION
+            obj.mode = cameramode.DETECT_MOTION
         elif value == "Распознование границ":
-            obj.set_mode = cameramode.DETECT_BORDERS
+            obj.mode = cameramode.DETECT_BORDERS
         else:
             print(value + " is not find")
 
@@ -276,7 +276,8 @@ class Video:
     def get_frame_detected(self, width=500, img=None):
         if img is None:
             img = self.get_frame(width)
-        boxes, scores, classes = self.detect(img)
+
+        boxes, scores, classes = self.detect(width=width, img=img)
         for i in range(len(boxes)):
             box = boxes[i]
             cv2.rectangle(img, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
