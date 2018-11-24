@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import *
 from imutils.video import VideoStream
 
 import design
+import cameramode
 
 duration = 1000  # millisecond
 freq = 440  # Hz
@@ -23,16 +24,14 @@ global isPolyCreated
 isPolyCreated = False
 
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
-# 0.7 - объект в кадре будет обведён рамкой, если
-#       сеть уверена на 70% и выше
+                        # 0.7 - объект в кадре будет обведён рамкой, если
+                        #       сеть уверена на 70% и выше
 CLASSES_TO_DETECT = [
-    1,  # person
-    16,  # cat
-    17  # dog
+    1,      # person
+    16,     # cat
+    17      # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
-
-
-# номер класса = номер строки, нумерация с 1
+   # номер класса = номер строки, нумерация с 1
 
 
 def mouse_drawing(event, x, y):
@@ -50,12 +49,17 @@ def in_polygon(x, y, xp, yp):
 
 
 def is_pixels_in_area(start_x, start_y, end_x, end_y, xp, yp):
-    ret = False
+    """ret = False
     for y in range(start_y, end_y):
         for x in range(start_x, end_x):
             if in_polygon(x, y, xp, yp):
                 ret = True
-    return ret
+    return ret"""
+    for y in range(start_y, end_y):
+        for x in range(start_x, end_x):
+            if in_polygon(x, y, xp, yp):
+                return True
+    return False
 
 
 class DetectorAPI:
@@ -106,10 +110,8 @@ class DetectorAPI:
 
     def close(self):
         self.sess.close()
-        self.default_graph.close()
+        # self.default_graph.close()  # AttributeError: '_GeneratorContextManager' object has no attribute 'close'
 
-
-# end
 
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -127,11 +129,11 @@ class UI(QMainWindow, design.Ui_MainWindow):
                                     path_to_labels=labels_path)
         self.start_video()
         self.setWindowTitle('Security System')
-        self.pushButton_1.clicked.connect(self.mark_up)  # AttributeError: 'UI' object has no attribute 'pushButton_n1'
+        self.pushButton_1.clicked.connect(self.mark_up)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
-        self.comboBox_1.currentTextChanged.connect(
-            self.video_two_change_ode)  # есть подозрения что можно передавать значения в функцию
-        self.comboBox_1.currentTextChanged.connect(self.video_three_change_mode)
+        self.comboBox_2.currentTextChanged.connect(
+            self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
         super().__init__()
@@ -141,10 +143,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
     @staticmethod
     def mark_up():
         global isPressMarkUpButton
-        if not isPressMarkUpButton:
-            isPressMarkUpButton = True
-        elif isPressMarkUpButton:
-            isPressMarkUpButton = False
+        isPressMarkUpButton = not isPressMarkUpButton
 
     def start_video(self):
         # WORK VERSION
@@ -179,8 +178,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF DEBUG VERSION
 
         if self.v1.isPlay:
-            # a = self.v1.get_image_qt(self.v1.get_polygon_frame())  # не рисует прямоугольники
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))  # рисует прямоугольники
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
             a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
@@ -193,15 +191,15 @@ class UI(QMainWindow, design.Ui_MainWindow):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.detector.close()
             event.accept()
-            # DetectorAPI.close()
         else:
             event.ignore()
 
     def video_one_change_mode(self, value):
         self.change_mod_by_mod(value, self.v1)
 
-    def video_two_change_ode(self, value):
+    def video_two_change_mode(self, value):
         self.change_mod_by_mod(value, self.v2)
 
     def video_three_change_mode(self, value):
@@ -210,20 +208,20 @@ class UI(QMainWindow, design.Ui_MainWindow):
     @staticmethod
     def change_mod_by_mod(value, obj):
         if value == "Обычный режим":
-            obj.set_mode = 1
+            obj.set_mode = cameramode.ORIGINAL
         elif value == "Распознование людей":
-            obj.set_mode = 2
+            obj.set_mode = cameramode.DETECT_OBJECTS
         elif value == "Распознование движения":
-            obj.set_mode = 3
+            obj.set_mode = cameramode.DETECT_MOTION
         elif value == "Распознование границ":
-            obj.set_mode = 4
+            obj.set_mode = cameramode.DETECT_BORDERS
         else:
             print(value + " is not find")
 
 
 class Video:
     def __init__(self, src=0, detector=None, color1=(0, 255, 0),
-                 color2=(0, 0, 255), color3=(255, 0, 0), mode=0):
+                 color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
         self.mode = mode
         self.vc = cv2.VideoCapture(src)
         # DEBUG VERSION
@@ -231,21 +229,19 @@ class Video:
         # END OF DEBUG VERSION
         self.detector = detector
         print("start")
-        time.sleep(2.0)
         self.color1 = color1
         self.color2 = color2
         self.color3 = color3
         self.isPlay = True
 
     def get_smart_frame(self, width=500):
-        if self.mode == 1:
-            return self.get_frame(width)
-        if self.mode == 2:
+        # пока что не реализовано обнаружение движения - константа cameramode.DETECT_MOTION
+        if self.mode == cameramode.DETECT_OBJECTS:
             return self.get_frame_detected(width)
-        if self.mode == 3:
-            return self.get_frame(width)
-        if self.mode == 4:
+        elif self.mode == cameramode.DETECT_BORDERS:
             return self.get_polygon_frame(width)
+        else:
+            return self.get_frame(width)
 
     def get_frame(self, width=500):
         # WORK VERSION
@@ -262,9 +258,9 @@ class Video:
         return frame
 
     # For first cam-capture
-    def detect(self, img=None):  # бывш. detect_green_gumanoids
+    def detect(self, width=500, img=None):
         if img is None:
-            img = self.get_frame()
+            img = self.get_frame(width)
         boxes, scores, classes, num = self.detector.process(img)
 
         d_boxes = []
@@ -277,9 +273,9 @@ class Video:
                 d_classes.append(classes[i])
         return d_boxes, d_scores, d_classes
 
-    def get_frame_detected(self, img=None):
+    def get_frame_detected(self, width=500, img=None):
         if img is None:
-            img = self.get_frame()
+            img = self.get_frame(width)
         boxes, scores, classes = self.detect(img)
         for i in range(len(boxes)):
             box = boxes[i]
@@ -340,13 +336,13 @@ class Video:
                 # print('ok its draw')
                 points = np.array(circles)
                 if (in_polygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
-                    print('draw 1')
+                    # print('draw 1')
                     # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color3, 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(frame, "not a good guy", (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
                 else:
-                    print('draw 2')
+                    # print('draw 2')
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color1, 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
