@@ -15,7 +15,6 @@ import design
 duration = 1000  # millisecond
 freq = 440  # Hz
 
-
 global circles
 circles = []
 global isPressMarkUpButton
@@ -24,14 +23,16 @@ global isPolyCreated
 isPolyCreated = False
 
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
-                        # 0.7 - объект в кадре будет обведён рамкой, если
-                        #       сеть уверена на 70% и выше
+# 0.7 - объект в кадре будет обведён рамкой, если
+#       сеть уверена на 70% и выше
 CLASSES_TO_DETECT = [
-    1,      # person
-    16,     # cat
-    17      # dog
+    1,  # person
+    16,  # cat
+    17  # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
-   #        номер класса = номер строки, нумерация с 1
+
+
+#        номер класса = номер строки, нумерация с 1
 
 
 def mouse_drawing(event, x, y, flags, params):
@@ -55,6 +56,7 @@ def isPixsInArea(StartX, StartY, EndX, EndY, xp, yp):
             if inPolygon(x, y, xp, yp):
                 ret = True
     return ret
+
 
 class DetectorAPI:
     def __init__(self, path_to_ckpt, path_to_labels):
@@ -92,19 +94,21 @@ class DetectorAPI:
             [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
             feed_dict={self.image_tensor: image_np_expanded})
 
-        im_height, im_width,_ = image.shape
+        im_height, im_width, _ = image.shape
         boxes_list = [None for i in range(boxes.shape[1])]
         for i in range(boxes.shape[1]):
             boxes_list[i] = (int(boxes[0, i, 0] * im_height),
-                        int(boxes[0, i, 1] * im_width),
-                        int(boxes[0, i, 2] * im_height),
-                        int(boxes[0, i, 3] * im_width))
+                             int(boxes[0, i, 1] * im_width),
+                             int(boxes[0, i, 2] * im_height),
+                             int(boxes[0, i, 3] * im_width))
 
         return boxes_list, scores[0].tolist(), [int(x) for x in classes[0].tolist()], int(num[0])
 
     def close(self):
         self.sess.close()
         self.default_graph.close()
+
+
 #####end#####
 
 class UI(QMainWindow, design.Ui_MainWindow):
@@ -114,6 +118,8 @@ class UI(QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.image = None
+        self.width_standart = 600
+        self.width360 = 800
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = '../cocozoo/' + model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
@@ -127,6 +133,10 @@ class UI(QMainWindow, design.Ui_MainWindow):
             self.VideoTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
         self.comboBox_1.currentTextChanged.connect(self.VideoThreeChangeMode)
 
+    def resizeEvent(self, event):
+        super().__init__()
+        self.width_standart = self.video_1.width()
+        self.width360 = self.video_3.width()
     def mark_up(self):
         global isPressMarkUpButton
         if not isPressMarkUpButton:
@@ -136,10 +146,10 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def start_video(self):
         # WORK VERSION
-        self.v1 = Video(src=0,detector=self.detector)
-        self.v2 = Video(src=0,detector=self.detector)
+        self.v1 = Video(src=0, detector=self.detector)
+        self.v2 = Video(src=0, detector=self.detector)
         self.v2.stop()
-        self.v3 = Video(src=0,detector=self.detector)
+        self.v3 = Video(src=0, detector=self.detector)
         self.v3.stop()
         # END OF WORK VERSION
 
@@ -168,13 +178,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
         if self.v1.isPlay:
             # a = self.v1.get_image_qt(self.v1.get_polygon_frame())  # не рисует прямоугольники
-            a = self.v1.get_image_qt(self.v1.get_smart_frame())  # рисует прямоугольники
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standart))  # рисует прямоугольники
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame())
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standart))
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v2.get_smart_frame())
+            a = self.v3.get_image_qt(self.v2.get_smart_frame(self.width_standart))
             self.video_3.setPixmap(a)
 
     def closeEvent(self, event):
@@ -226,13 +236,14 @@ class Video:
 
     def get_smart_frame(self, width=500):
         if self.mode == 1:
-           return self.get_frame()
+            return self.get_frame()
         if self.mode == 2:
-           return self.get_frame_detected()
+            return self.get_frame_detected()
         if self.mode == 3:
-           return self.get_frame()
+            return self.get_frame()
         if self.mode == 4:
-           return self.get_polygon_frame()
+            return self.get_polygon_frame()
+
     def get_frame(self, width=500):
         # WORK VERSION
         frame = self.vs.read()
@@ -262,14 +273,14 @@ class Video:
                 d_scores.append(scores[i])
                 d_classes.append(classes[i])
         return d_boxes, d_scores, d_classes
-    
+
     def get_frame_detected(self, img=None):
         if img is None:
             img = self.get_frame()
         boxes, scores, classes = self.detect(img)
         for i in range(len(boxes)):
             box = boxes[i]
-            cv2.rectangle(img,(box[1],box[0]),(box[3],box[2]),self.color1,2)
+            cv2.rectangle(img, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
             y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
             cv2.putText(img, self.detector.labels[classes[i] - 1], (box[1], y),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
