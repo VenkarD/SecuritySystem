@@ -4,10 +4,10 @@ import time
 import cv2
 import imutils
 import numpy as np
+import tensorflow as tf
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import tensorflow as tf
 from imutils.video import VideoStream
 
 import design
@@ -32,16 +32,16 @@ CLASSES_TO_DETECT = [
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
 
 
-#        номер класса = номер строки, нумерация с 1
+# номер класса = номер строки, нумерация с 1
 
 
-def mouse_drawing(event, x, y, flags, params):
+def mouse_drawing(event, x, y):
     if event == cv2.EVENT_LBUTTONDOWN:
         print("Left click")
         circles.append((x, y))
 
 
-def inPolygon(x, y, xp, yp):
+def in_polygon(x, y, xp, yp):
     c = 0
     for i in range(len(xp)):
         if (((yp[i] <= y and y < yp[i - 1]) or (yp[i - 1] <= y and y < yp[i])) and \
@@ -49,11 +49,11 @@ def inPolygon(x, y, xp, yp):
     return c
 
 
-def isPixsInArea(StartX, StartY, EndX, EndY, xp, yp):
+def is_pixels_in_area(start_x, start_y, end_x, end_y, xp, yp):
     ret = False
-    for y in range(StartY, EndY):
-        for x in range(StartX, EndX):
-            if inPolygon(x, y, xp, yp):
+    for y in range(start_y, end_y):
+        for x in range(start_x, end_x):
+            if in_polygon(x, y, xp, yp):
                 ret = True
     return ret
 
@@ -109,7 +109,7 @@ class DetectorAPI:
         self.default_graph.close()
 
 
-#####end#####
+# end
 
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -128,16 +128,18 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.start_video()
         self.setWindowTitle('Security System')
         self.pushButton_1.clicked.connect(self.mark_up)  # AttributeError: 'UI' object has no attribute 'pushButton_n1'
-        self.comboBox_1.currentTextChanged.connect(self.VideoOneChangeMode)
+        self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
         self.comboBox_1.currentTextChanged.connect(
-            self.VideoTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
-        self.comboBox_1.currentTextChanged.connect(self.VideoThreeChangeMode)
+            self.video_two_change_ode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_1.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
         super().__init__()
         self.width_standart = self.video_1.width()
         self.width360 = self.video_3.width()
-    def mark_up(self):
+
+    @staticmethod
+    def mark_up():
         global isPressMarkUpButton
         if not isPressMarkUpButton:
             isPressMarkUpButton = True
@@ -196,16 +198,17 @@ class UI(QMainWindow, design.Ui_MainWindow):
         else:
             event.ignore()
 
-    def VideoOneChangeMode(self, value):
-        self.ChangeModByMod(value, self.v1)
+    def video_one_change_mode(self, value):
+        self.change_mod_by_mod(value, self.v1)
 
-    def VideoTwoChangeMode(self, value):
-        self.ChangeModByMod(value, self.v2)
+    def video_two_change_ode(self, value):
+        self.change_mod_by_mod(value, self.v2)
 
-    def VideoThreeChangeMode(self, value):
-        self.ChangeModByMod(value, self.v3)
+    def video_three_change_mode(self, value):
+        self.change_mod_by_mod(value, self.v3)
 
-    def ChangeModByMod(self, value, obj):
+    @staticmethod
+    def change_mod_by_mod(value, obj):
         if value == "Обычный режим":
             obj.set_mode = 1
         elif value == "Распознование людей":
@@ -215,7 +218,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         elif value == "Распознование границ":
             obj.set_mode = 4
         else:
-            print(value + " is not defind")
+            print(value + " is not find")
 
 
 class Video:
@@ -236,13 +239,13 @@ class Video:
 
     def get_smart_frame(self, width=500):
         if self.mode == 1:
-            return self.get_frame()
+            return self.get_frame(width)
         if self.mode == 2:
-            return self.get_frame_detected()
+            return self.get_frame_detected(width)
         if self.mode == 3:
-            return self.get_frame()
+            return self.get_frame(width)
         if self.mode == 4:
-            return self.get_polygon_frame()
+            return self.get_polygon_frame(width)
 
     def get_frame(self, width=500):
         # WORK VERSION
@@ -286,12 +289,12 @@ class Video:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return img
 
-    def get_polygon_image(self, img=None):
+    def get_polygon_image(self, width=700, img=None):
         global circles
         global isPressMarkUpButton
         global isPolyCreated
         if img is None:
-            img = self.get_frame()
+            img = self.get_frame(width)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
         cv2.namedWindow("Frame")
         points = np.array(circles)
@@ -320,8 +323,8 @@ class Video:
 
         return img
 
-    def get_polygon_frame(self):
-        frame = self.get_polygon_image()
+    def get_polygon_frame(self, width=500):
+        frame = self.get_polygon_image(width)
         # (w, h) = frame.shape[:2]
 
         boxes, scores, classes = self.detect(frame)
@@ -333,16 +336,15 @@ class Video:
             (startX, startY, endX, endY) = box
             label = self.detector.labels[classes[i] - 1]
 
-            if (isPolyCreated == True):
-                print('ok lezgo draw')
+            if isPolyCreated:
+                # print('ok its draw')
                 points = np.array(circles)
-                if (inPolygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
+                if (in_polygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
                     print('draw 1')
-                    # if(isPixsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
+                    # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color3, 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(frame, "not a good guy", (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
-                # winsound.Beep(freq, duration)
                 else:
                     print('draw 2')
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color1, 2)
@@ -350,10 +352,11 @@ class Video:
                     cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
-    def get_image_qt(self, frame):
-        rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        convertToQtFormat = QImage(rgbImage.data, rgbImage.shape[1], rgbImage.shape[0], QImage.Format_RGB888)
-        p = convertToQtFormat.scaled(300, 200, Qt.KeepAspectRatio)  # текущие координаты
+    @staticmethod
+    def get_image_qt(frame):
+        rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
+        p = convert_to_qt_format.scaled(300, 200, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
