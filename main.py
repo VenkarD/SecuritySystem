@@ -118,7 +118,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         super().__init__()
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.image = None
-        self.width_standart = 600
+        self.width_standard = 600
         self.width360 = 800
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = '../cocozoo/' + model_name + '/frozen_inference_graph.pb'  # HERE
@@ -135,7 +135,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def resizeEvent(self, event):
         super().__init__()
-        self.width_standart = self.video_1.width()
+        self.width_standard = self.video_1.width()
         self.width360 = self.video_3.width()
 
     @staticmethod
@@ -180,13 +180,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
         if self.v1.isPlay:
             # a = self.v1.get_image_qt(self.v1.get_polygon_frame())  # не рисует прямоугольники
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standart))  # рисует прямоугольники
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))  # рисует прямоугольники
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standart))
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v2.get_smart_frame(self.width_standart))
+            a = self.v3.get_image_qt(self.v2.get_smart_frame(self.width_standard))
             self.video_3.setPixmap(a)
 
     def closeEvent(self, event):
