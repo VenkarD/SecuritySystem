@@ -8,8 +8,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import tensorflow as tf
-
-#from imutils.video import VideoStream
+from imutils.video import VideoStream
 
 import design
 
@@ -122,10 +121,10 @@ class UI(QMainWindow, design.Ui_MainWindow):
                                     path_to_labels=labels_path)
         self.start_video()
         self.setWindowTitle('Security System')
-        self.pushButton_n1.clicked.connect(self.mark_up)
+        # self.pushButton_n1.clicked.connect(self.mark_up)  # AttributeError: 'UI' object has no attribute 'pushButton_n1'
         self.comboBox_1.currentTextChanged.connect(self.VideoOneChangeMode)
         self.comboBox_1.currentTextChanged.connect(
-            self.VideTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
+            self.VideoTwoChangeMode)  # есть подозрения что можно передавать значения в функцию
         self.comboBox_1.currentTextChanged.connect(self.VideoThreeChangeMode)
 
     def mark_up(self):
@@ -136,18 +135,40 @@ class UI(QMainWindow, design.Ui_MainWindow):
             isPressMarkUpButton = False
 
     def start_video(self):
-        self.v1 = Video(src=0,self.detector)
-        self.v2 = Video(src=0,self.detector)
+        # WORK VERSION
+        self.v1 = Video(src=0,detector=self.detector)
+        self.v2 = Video(src=0,detector=self.detector)
         self.v2.stop()
-        self.v3 = Video(src=0,self.detector)
+        self.v3 = Video(src=0,detector=self.detector)
         self.v3.stop()
+        # END OF WORK VERSION
+
+        # DEBUG VERSION
+        """self.v1 = Video(src='../cat.mp4',detector=self.detector)
+        self.v2 = Video(src='../people.mp4',detector=self.detector)
+        self.v2.stop()
+        self.v3 = Video(src='../people.mp4',detector=self.detector)
+        self.v3.stop()
+        self.count = 0"""
+        # END OF DEBUG VERSION
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
         self.timer.start(5)
 
     def update_video(self):
+        # DEBUG VERSION
+        """self.v1.get_frame()
+        self.count += 1
+        if self.count % 30 == 0:
+            print('Frame', self.count)
+        if self.count < 925:
+            return"""
+        # END OF DEBUG VERSION
+
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_polygon_frame())
+            # a = self.v1.get_image_qt(self.v1.get_polygon_frame())  # не рисует прямоугольники
+            a = self.v1.get_image_qt(self.v1.get_frame_detected())  # рисует прямоугольники
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
             a = self.v2.get_image_qt(self.v2.get_polygon_frame())
@@ -188,33 +209,42 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0,detector=None , color=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), confidence=0.4, mode=0):
+    def __init__(self, src=0, detector=None, color1=(0, 255, 0),
+                 color2=(0, 0, 255), color3=(255, 0, 0), mode=0):
         self.mode = mode
         self.vc = cv2.VideoCapture(src)
+        # DEBUG VERSION
+        self.vs = VideoStream(src=src).start()
+        # END OF DEBUG VERSION
         self.detector = detector
         print("start")
         time.sleep(2.0)
-        self.color = color
+        self.color1 = color1
         self.color2 = color2
         self.color3 = color3
         self.isPlay = True
-        self.confidence = confidence
 
     def get_smart_frame(self, width=500):
         if self.mode == 1:
             pass
         if self.mode == 2:
-             pass
+            pass
         if self.mode == 3:
             pass
         if self.mode == 4:
             pass
 
     def get_frame(self, width=500):
+        # WORK VERSION
         frame = self.vs.read()
         if frame is None:
             _, frame = self.vc.read()
         frame = imutils.resize(frame, width=width)
+        # END OF WORK VERSION
+
+        # DEBUG VERSION
+        """_, frame = self.vc.read()"""
+        # END OF DEBUG VERSION
 
         return frame
 
@@ -244,6 +274,7 @@ class Video:
             y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
             cv2.putText(img, self.detector.labels[classes[i] - 1], (box[1], y),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
+        return img
 
     def get_polygon_image(self, img=None):
         global circles
@@ -251,7 +282,7 @@ class Video:
         global isPolyCreated
         if img is None:
             img = self.get_frame()
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
         cv2.namedWindow("Frame")
         points = np.array(circles)
 
@@ -281,24 +312,29 @@ class Video:
 
     def get_polygon_frame(self):
         frame = self.get_polygon_image()
+        # (w, h) = frame.shape[:2]
 
         boxes, scores, classes = self.detect(frame)
+        print(len(boxes), 'object(s) detected')
 
         for i in range(len(boxes)):
-            # box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])  # было где-то тут
             box = boxes[i]
+            # box = box * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box
             label = self.detector.labels[classes[i] - 1]
 
             if (isPolyCreated == True):
+                print('ok lezgo draw')
                 points = np.array(circles)
                 if (inPolygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
+                    print('draw 1')
                     # if(isPixsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color3, 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(frame, "not a good guy", (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
                 # winsound.Beep(freq, duration)
                 else:
+                    print('draw 2')
                     cv2.rectangle(frame, (startX, startY), (endX, endY), self.color1, 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
