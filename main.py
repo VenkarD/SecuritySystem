@@ -9,6 +9,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from imutils.video import VideoStream
+from numba import jit
 
 import design
 import cameramode
@@ -24,14 +25,16 @@ global isPolyCreated
 isPolyCreated = False
 
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
-                        # 0.7 - объект в кадре будет обведён рамкой, если
-                        #       сеть уверена на 70% и выше
+# 0.7 - объект в кадре будет обведён рамкой, если
+#       сеть уверена на 70% и выше
 CLASSES_TO_DETECT = [
-    1,      # person
-    16,     # cat
-    17      # dog
+    1,  # person
+    16,  # cat
+    17  # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
-   # номер класса = номер строки, нумерация с 1
+
+
+# номер класса = номер строки, нумерация с 1
 
 
 def mouse_drawing(event, x, y):
@@ -49,31 +52,30 @@ def in_polygon(x, y, xp, yp):
 
 
 def is_pixels_in_area(start_x, start_y, end_x, end_y, xp, yp):
-    """ret = False
+    ret = False
     for y in range(start_y, end_y):
         for x in range(start_x, end_x):
             if in_polygon(x, y, xp, yp):
                 ret = True
-    return ret"""
-    for y in range(start_y, end_y):
-        for x in range(start_x, end_x):
-            if in_polygon(x, y, xp, yp):
-                return True
-    return False
+    return ret
 
 
 class DetectorAPI:
     def __init__(self, path_to_ckpt, path_to_labels):
         self.detection_graph = tf.Graph()
-        with self.detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
-                serialized_graph = fid.read()
-                od_graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(od_graph_def, name='')
+        for d in ['/device:GPU:0', '/device:GPU:1', '/device:GPU:2', '/device:GPU:3']:
+            with tf.device(d):
+                with self.detection_graph.as_default():
+                    od_graph_def = tf.GraphDef()
+                    with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
+                        serialized_graph = fid.read()
+                        od_graph_def.ParseFromString(serialized_graph)
+                        tf.import_graph_def(od_graph_def, name='')
 
         self.default_graph = self.detection_graph.as_default()
-        self.sess = tf.Session(graph=self.detection_graph)
+        config = tf.ConfigProto()
+        config.gpu_options.per_process_gpu_memory_fraction = 0.4
+        self.sess = tf.Session(graph=self.detection_graph, config=config)
 
         # Definite input and output Tensors for detection_graph
         self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
@@ -89,6 +91,7 @@ class DetectorAPI:
             self.labels = f.readlines()
         self.labels = [s.strip() for s in self.labels]
 
+    @jit
     def process(self, image):
         # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image, axis=0)
@@ -110,8 +113,10 @@ class DetectorAPI:
 
     def close(self):
         self.sess.close()
-        # self.default_graph.close()  # AttributeError: '_GeneratorContextManager' object has no attribute 'close'
+        self.default_graph.close()
 
+
+# end
 
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -123,7 +128,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.width_standard = 600
         self.width360 = 800
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
-        model_path = '../cocozoo/' + model_name + '/frozen_inference_graph.pb'  # HERE
+        model_path = model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
         self.detector = DetectorAPI(path_to_ckpt=model_path,
                                     path_to_labels=labels_path)
@@ -145,11 +150,12 @@ class UI(QMainWindow, design.Ui_MainWindow):
         global isPressMarkUpButton
         isPressMarkUpButton = not isPressMarkUpButton
 
+    @jit
     def start_video(self):
         # WORK VERSION
-        self.v1 = Video(src=0, detector=self.detector)
-        self.v2 = Video(src=0, detector=self.detector)
-        self.v2.stop()
+        self.v1 = Video(src='rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        self.v2 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        #self.v2.stop()
         self.v3 = Video(src=0, detector=self.detector)
         self.v3.stop()
         # END OF WORK VERSION
@@ -167,6 +173,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.timer.timeout.connect(self.update_video)
         self.timer.start(5)
 
+    @jit
     def update_video(self):
         # DEBUG VERSION
         """self.v1.get_frame()
@@ -184,7 +191,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
             a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v2.get_smart_frame(self.width_standard))
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
             self.video_3.setPixmap(a)
 
     def closeEvent(self, event):
@@ -221,7 +228,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 class Video:
     def __init__(self, src=0, detector=None, color1=(0, 255, 0),
-                 color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+                 color2=(0, 0, 255), color3=(255, 0, 0), mode=0):
         self.mode = mode
         self.vc = cv2.VideoCapture(src)
         # DEBUG VERSION
@@ -229,6 +236,7 @@ class Video:
         # END OF DEBUG VERSION
         self.detector = detector
         print("start")
+        time.sleep(2.0)
         self.color1 = color1
         self.color2 = color2
         self.color3 = color3
@@ -243,6 +251,7 @@ class Video:
         else:
             return self.get_frame(width)
 
+    @jit
     def get_frame(self, width=500):
         # WORK VERSION
         frame = self.vs.read()
@@ -286,6 +295,7 @@ class Video:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return img
 
+    @jit
     def get_polygon_image(self, width=700, img=None):
         global circles
         global isPressMarkUpButton
@@ -320,6 +330,7 @@ class Video:
 
         return img
 
+    @jit
     def get_polygon_frame(self, width=500):
         frame = self.get_polygon_image(width)
         # (w, h) = frame.shape[:2]
