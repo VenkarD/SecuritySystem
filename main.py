@@ -313,6 +313,7 @@ class Video:
             img = self.get_frame()
         boxes = self.detect(img)
 
+
         if secState != (len(boxes) > 0):
             secState = (len(boxes) > 0)
         if secState:
