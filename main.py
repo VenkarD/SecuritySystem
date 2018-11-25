@@ -347,17 +347,17 @@ class Video:
             if isPolyCreated:
                 # print('ok its draw')
                 points = np.array(circles)
-                if (in_polygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
+                if (in_polygon((box[0] + box[2]) / 2, (box[1] + box[3]) / 2, points[:, 0], points[:, 1])):
                     # print('draw 1')
                     # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
-                    cv2.rectangle(frame, (startX, startY), (endX, endY), self.color3, 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(frame, "not a good guy", (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
+                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color3, 2)
+                    y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
+                    cv2.putText(frame, "not a good guy", (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
                 else:
                     # print('draw 2')
-                    cv2.rectangle(frame, (startX, startY), (endX, endY), self.color1, 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
+                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
+                    y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
+                    cv2.putText(frame, label, (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
     @staticmethod
