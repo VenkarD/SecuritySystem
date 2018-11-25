@@ -196,13 +196,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF DEBUG VERSION
 
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard),self.width_standard)
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard),self.width_standard)
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard),self.width_standard)# когда будет камера 360 width360
             self.video_3.setPixmap(a)
         # if self.v4.isPlay:
         #     self.v4.get_security_detected(self.width_standard)
@@ -230,11 +230,11 @@ class UI(QMainWindow, design.Ui_MainWindow):
     def change_mod_by_mod(value, obj):
         if value == "Обычный режим":
             obj.mode = cameramode.ORIGINAL
-        elif value == "Распознование людей":
+        elif value == "Распознавание людей":
             obj.mode = cameramode.DETECT_OBJECTS
-        elif value == "Распознование движения":
+        elif value == "Распознавание движения":
             obj.mode = cameramode.DETECT_MOTION
-        elif value == "Распознование границ":
+        elif value == "Распознавание границ":
             obj.mode = cameramode.DETECT_BORDERS
         else:
             print(value + " is not find")
@@ -385,11 +385,11 @@ class Video:
         return frame
 
     @staticmethod
-    def get_image_qt(frame):
+    def get_image_qt(frame,width):
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(600, 500, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(width, 100500, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
