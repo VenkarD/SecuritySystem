@@ -255,7 +255,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.DETECT_OBJECTS):
+    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
         self.mode = mode
         self.mode1 = mode
         self.mode2 = mode
