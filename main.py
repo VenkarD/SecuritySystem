@@ -1,4 +1,3 @@
-import logging
 import sys
 import time
 
@@ -143,14 +142,14 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.pushButton_1.clicked.connect(self.mark_up)
         self.pushButton_2.clicked.connect(self.mark_down)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
-        self.comboBox_3.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
-        self.comboBox_2.currentTextChanged.connect(self.video_three_change_mode)
+        self.comboBox_2.currentTextChanged.connect(
+            self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
         super().__init__()
-        self.width_standard = self.comboBox_1.width()
-        self.width360 = self.comboBox_3.width()
-
+        self.width_standard = self.video_1.width()
+        self.width360 = self.video_3.width()
 
     @staticmethod
     def mark_up():
@@ -168,15 +167,10 @@ class UI(QMainWindow, design.Ui_MainWindow):
     def start_video(self):
         # WORK VERSION
         self.v1 = Video(src=0, detector=self.detector)
-        # self.v1.stop()
-        # self.v2 = Video(src=0, detector=self.detector)
-        self.v2 = self.v1
-        # self.v2.stop()
-        # self.v3 = Video(src=0, detector=self.detector)
-        self.v3 = self.v1
-        # self.v3.stop()
-        self.v4 = Video(src=0, detector=self.detector)
-        self.v4.stop()
+        self.v2 = Video(src=0, detector=self.detector)
+        self.v2.stop()
+        self.v3 = Video(src=0, detector=self.detector)
+        self.v3.stop()
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -252,8 +246,12 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+    def __init__(self, src=0, detector=None, color1=(0, 255, 0),
+                 color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
         self.mode = mode
+        self.mode1 = mode
+        self.mode2 = mode
+        self.mode3 = mode
         self.vc = cv2.VideoCapture(src)
         # DEBUG VERSION
         self.vs = VideoStream(src=src).start()
@@ -338,8 +336,9 @@ class Video:
         if img is None:
             img = self.get_frame(width)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
-        # if isPressMarkUpButton:
-        #     cv2.namedWindow("Frame")
+
+        if isPressMarkUpButton:
+            cv2.namedWindow("Frame")
         points = np.array(circles)
 
         if isPressMarkUpButton:
@@ -385,17 +384,17 @@ class Video:
             if isPolyCreated:
                 # print('ok its draw')
                 points = np.array(circles)
-                if (in_polygon((startX + endX) / 2, (startY + endY) / 2, points[:, 0], points[:, 1])):
+                if (in_polygon((box[1] + box[3]) / 2, (box[0] + box[3]) / 2, points[:, 0], points[:, 1])):
                     # print('draw 1')
                     # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
-                    cv2.rectangle(frame, (startX, startY), (endX, endY), self.color3, 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(frame, "not a good guy", (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
+                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color3, 2)
+                    y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
+                    cv2.putText(frame, "not a good guy", (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
                 else:
                     # print('draw 2')
-                    cv2.rectangle(frame, (startX, startY), (endX, endY), self.color1, 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(frame, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
+                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
+                    y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
+                    cv2.putText(frame, label, (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
     @staticmethod
