@@ -2,7 +2,7 @@ import sys
 import time
 
 import cv2
-import imutils
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -167,10 +167,10 @@ class UI(QMainWindow, design.Ui_MainWindow):
     def start_video(self):
         # WORK VERSION
         self.v1 = Video(src=0, detector=self.detector)
-        self.v2 = Video(src=0, detector=self.detector)
-        self.v2.stop()
-        self.v3 = Video(src=0, detector=self.detector)
-        self.v3.stop()
+        self.v2 = self.v1
+        # self.v2.stop()
+        self.v3 = self.v1
+        # self.v3.stop()
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -401,7 +401,7 @@ class Video:
     def get_image_qt(frame, width=600):
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(700, width, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(600, width*2, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
