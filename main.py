@@ -206,16 +206,16 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF DEBUG VERSION
 
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width360), self.width_standard)
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
             self.video_3.setPixmap(a)
-        #if self.v4.isPlay:
-            #self.v4.get_security_detected(self.width_standard)
+        # if self.v4.isPlay:
+        #     self.v4.get_security_detected(self.width_standard)
 
 
     def closeEvent(self, event):
@@ -285,7 +285,7 @@ class Video:
         frame = self.vs.read()
         if frame is None:
             _, frame = self.vc.read()
-        # frame = imutils.resize(frame, width=width)
+        #frame = imutils.resize(frame, width=width)
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -363,8 +363,6 @@ class Video:
 
         if isPressMarkUpButton:
             cv2.imshow("Frame", img)
-
-
 
         key = cv2.waitKey(1)
         if key == ord("d"):
