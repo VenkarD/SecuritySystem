@@ -3,6 +3,7 @@ import sys
 import time
 
 import cv2
+import imutils
 
 import numpy as np
 import tensorflow as tf
@@ -142,13 +143,14 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.pushButton_1.clicked.connect(self.mark_up)
         self.pushButton_2.clicked.connect(self.mark_down)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
-        self.comboBox_2.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
-        self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
+        self.comboBox_3.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_2.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
         super().__init__()
-        self.width_standard = self.video_1.width()
-        self.width360 = self.video_3.width()
+        self.width_standard = self.comboBox_1.width()
+        self.width360 = self.comboBox_2.width()
+
 
     @staticmethod
     def mark_up():
@@ -161,15 +163,23 @@ class UI(QMainWindow, design.Ui_MainWindow):
         global isPressMarkUpButton
         isPressMarkUpButton = False
         print('Button clicked ', isPressMarkUpButton)
+        cv2.destroyAllWindows()
 
     def start_video(self):
         # WORK VERSION
-        self.v1 = Video(src='rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
-        self.v2 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
-        #self.v2.stop()
-        self.v3 = Video(src='rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
-        #self.v3.stop()
-        # self.v4 = Video(src=0, detector=self.detector)
+        self.v1 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        self.v1.mode1 = self.v1.mode
+        # self.v1.stop()
+        self.v2 = Video(src='rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        #self.v2 = self.v1
+        self.v2.mode2 = self.v2.mode
+        # self.v2.stop()
+        self.v3 = Video(src='rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        #self.v3 = self.v1
+        self.v3.mode3 = self.v3.mode
+        # self.v3.stop()
+        self.v4 = Video(src=0, detector=self.detector)
+        self.v4.stop()
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -196,16 +206,16 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF DEBUG VERSION
 
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width360), self.width_standard)
             self.video_3.setPixmap(a)
-        # if self.v4.isPlay:
-        #     self.v4.get_security_detected(self.width_standard)
+        #if self.v4.isPlay:
+            #self.v4.get_security_detected(self.width_standard)
 
 
     def closeEvent(self, event):
@@ -230,19 +240,26 @@ class UI(QMainWindow, design.Ui_MainWindow):
     def change_mod_by_mod(value, obj):
         if value == "Обычный режим":
             obj.mode = cameramode.ORIGINAL
-        elif value == "Распознование людей":
+            cv2.destroyAllWindows()
+        elif value == "Распознавание людей":
             obj.mode = cameramode.DETECT_OBJECTS
-        elif value == "Распознование движения":
+            cv2.destroyAllWindows()
+        elif value == "Распознавание движения":
             obj.mode = cameramode.DETECT_MOTION
-        elif value == "Распознование границ":
+            cv2.destroyAllWindows()
+        elif value == "Распознавание границ":
             obj.mode = cameramode.DETECT_BORDERS
         else:
             print(value + " is not find")
+        print(value)
 
 
 class Video:
-    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.DETECT_OBJECTS):
         self.mode = mode
+        self.mode1 = mode
+        self.mode2 = mode
+        self.mode3 = mode
         self.vc = cv2.VideoCapture(src)
         # DEBUG VERSION
         self.vs = VideoStream(src=src).start()
@@ -268,7 +285,7 @@ class Video:
         frame = self.vs.read()
         if frame is None:
             _, frame = self.vc.read()
-        #frame = imutils.resize(frame, width=width)
+        # frame = imutils.resize(frame, width=width)
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -306,13 +323,12 @@ class Video:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return img
 
-    def get_security_detected(self, img=None):
+    def get_security_detected(self, width=500, img=None):
         global secState
 
         if img is None:
-            img = self.get_frame()
-        boxes = self.detect(img)
-
+            img = self.get_frame(width)
+            boxes, scores, classes = self.detect(width=width, img=img)
 
         if secState != (len(boxes) > 0):
             secState = (len(boxes) > 0)
@@ -321,14 +337,15 @@ class Video:
         else:
             logger.debug("Security gone")
 
-    def get_polygon_image(self, width=500, img=None):
+    def get_polygon_image(self, width=700, img=None):
         global circles
         global isPressMarkUpButton
         global isPolyCreated
         if img is None:
             img = self.get_frame(width)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
-        cv2.namedWindow("Frame")
+        if isPressMarkUpButton:
+            cv2.namedWindow("Frame")
         points = np.array(circles)
 
         if isPressMarkUpButton:
@@ -344,7 +361,10 @@ class Video:
             cv2.fillPoly(stencil, np.int32([points]), (255, 255, 255))
             img = cv2.bitwise_and(img, stencil)
 
-        cv2.imshow("Frame", img)
+        if isPressMarkUpButton:
+            cv2.imshow("Frame", img)
+
+
 
         key = cv2.waitKey(1)
         if key == ord("d"):
@@ -385,11 +405,10 @@ class Video:
         return frame
 
     @staticmethod
-    def get_image_qt(frame):
+    def get_image_qt(frame, width=600):
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(600, 500, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(700, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'D:\pub\Downloads\opencv\design.ui'
+# Form implementation generated from reading ui file 'design.ui'
 #
 # Created by: PyQt5 UI code generator 5.11.3
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(729, 457)
+        MainWindow.resize(729, 492)
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
@@ -148,24 +148,24 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "Calculon"))
         self.pushButton_11.setText(_translate("MainWindow", "11"))
         self.comboBox_3.setItemText(0, _translate("MainWindow", "Обычный режим"))
-        self.comboBox_3.setItemText(1, _translate("MainWindow", "Распознование людей"))
-        self.comboBox_3.setItemText(2, _translate("MainWindow", "Распознование движения"))
+        self.comboBox_3.setItemText(1, _translate("MainWindow", "Распознавание людей"))
+        self.comboBox_3.setItemText(2, _translate("MainWindow", "Распознавание движения"))
         self.comboBox_3.setItemText(3, _translate("MainWindow", "Распознавание границ"))
         self.pushButton_4.setText(_translate("MainWindow", "4"))
         self.pushButton_10.setText(_translate("MainWindow", "10"))
         self.comboBox_1.setItemText(0, _translate("MainWindow", "Обычный режим"))
-        self.comboBox_1.setItemText(1, _translate("MainWindow", "Распознование людей"))
-        self.comboBox_1.setItemText(2, _translate("MainWindow", "Распознование движения"))
-        self.comboBox_1.setItemText(3, _translate("MainWindow", "Распознование границ"))
+        self.comboBox_1.setItemText(1, _translate("MainWindow", "Распознавание людей"))
+        self.comboBox_1.setItemText(2, _translate("MainWindow", "Распознавание движения"))
+        self.comboBox_1.setItemText(3, _translate("MainWindow", "Распознавание границ"))
         self.pushButton_5.setText(_translate("MainWindow", "5"))
         self.pushButton_12.setText(_translate("MainWindow", "12"))
         self.pushButton_9.setText(_translate("MainWindow", "9"))
         self.pushButton_6.setText(_translate("MainWindow", "6"))
         self.pushButton_7.setText(_translate("MainWindow", "7"))
-        self.pushButton_2.setText(_translate("MainWindow", "2"))
+        self.pushButton_2.setText(_translate("MainWindow", "Деактивировать Р.Г."))
         self.pushButton_8.setText(_translate("MainWindow", "8"))
         self.pushButton_3.setText(_translate("MainWindow", "3"))
-        self.pushButton_1.setText(_translate("MainWindow", "1"))
+        self.pushButton_1.setText(_translate("MainWindow", "Активировать Р.Г. "))
         self.comboBox_2.setItemText(0, _translate("MainWindow", "Обычный режим"))
         self.comboBox_2.setItemText(1, _translate("MainWindow", "Распознавание людей"))
         self.comboBox_2.setItemText(2, _translate("MainWindow", "Распознавание движения"))
