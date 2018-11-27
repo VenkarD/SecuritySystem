@@ -202,3 +202,4 @@ class Ui_MainWindow(object):
         self.actionExit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.actionReset.setText(_translate("MainWindow", "Reset"))
         self.actionReset.setShortcut(_translate("MainWindow", "Ctrl+R"))
+

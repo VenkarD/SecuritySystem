@@ -11,9 +11,12 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from imutils.video import VideoStream
+from datetime import datetime
 
 import design
 import cameramode
+
+from datetime import datetime
 
 duration = 1000  # millisecond
 freq = 440  # Hz
@@ -58,6 +61,25 @@ def in_polygon(x, y, xp, yp):
                 (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])): c = 1 - c
     return c
 
+# Иконка загрузки
+class Splash(QSplashScreen):
+    def __init__(self, *arg, **args):
+        QSplashScreen.__init__(self, *arg, **args)
+        self.setCursor(Qt.BusyCursor)
+        self.setPixmap(QPixmap("boot.jpg"))
+        loaut = QVBoxLayout(self)
+        loaut.addItem(QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Expanding))
+        #self.progress = QProgressBar(self)
+        #self.progress.setValue(0)
+        #self.progress.setMaximum(100)
+        #loaut.addWidget(self.progress)
+        #self.showMessage(u"Пример заставки", Qt.AlignTop)
+        #self.startTimer(1000)
+        #self.progress.setMaximum(0)
+    #def timerEvent(self, event):
+        #self.progress.setValue(self.progress.value() + 1)
+        #event.accept()
+
 class DetectorAPI:
     def __init__(self, path_to_ckpt, path_to_labels):
         self.detection_graph = tf.Graph()
@@ -81,6 +103,10 @@ class DetectorAPI:
         self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
         self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+        # Что бы быстрее загружалось в процессе
+        (boxes, scores, classes, num) = self.sess.run(
+            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
+            feed_dict={self.image_tensor: np.expand_dims(np.zeros((10, 10, 3)), axis=0)})
 
         with open(path_to_labels) as f:
             self.labels = f.readlines()
@@ -299,8 +325,8 @@ class Video:
     def get_frame(self, width=500):
         # WORK VERSION
         frame = self.vs.read()
-        if frame is None:
-            _, frame = self.vc.read()
+        # if frame is None:
+        #     _, frame = self.vc.read()
         #frame = imutils.resize(frame, width=width)
         # END OF WORK VERSION
 
@@ -312,6 +338,7 @@ class Video:
 
     # For first cam-capture
     def detect(self, width=500, img=None):
+
         if img is None:
             img = self.get_frame(width)
         boxes, scores, classes, num = self.detector.process(img)
@@ -324,6 +351,7 @@ class Video:
                 d_boxes.append(boxes[i])
                 d_scores.append(scores[i])
                 d_classes.append(classes[i])
+
         return d_boxes, d_scores, d_classes
 
     def get_frame_detected(self, width=500, img=None):
@@ -408,9 +436,9 @@ class Video:
                 if (in_polygon((box[1] + box[3]) / 2, (box[0] + box[2]) / 2, points[:, 0], points[:, 1])):
                     # print('draw 1')
                     # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
-                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color3, 2)
+                    cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color2, 2)
                     y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
-                    cv2.putText(frame, "not a good guy", (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color3, 2)
+                    cv2.putText(frame, "not a good guy", (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color2, 2)
                 else:
                     # print('draw 2')
                     cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
@@ -439,11 +467,16 @@ class Video:
         else:
             self.mode = state
 
+starttime = datetime.now()
+global lasttime
 
 def main():
     app = QApplication(sys.argv)  # Новый экземпляр QApplication
+    splash = Splash()
+    splash.show()
     window = UI()  # Создаём объект класса ExampleApp
     window.show()  # Показываем окно
+    splash.finish(window)
     app.exec_()  # и запускаем прило
 
 
