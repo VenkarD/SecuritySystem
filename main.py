@@ -1,8 +1,9 @@
+import logging
 import sys
 import time
 
 import cv2
-import logging
+import imutils
 
 import numpy as np
 import tensorflow as tf
@@ -57,30 +58,16 @@ def in_polygon(x, y, xp, yp):
                 (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])): c = 1 - c
     return c
 
-
-def is_pixels_in_area(start_x, start_y, end_x, end_y, xp, yp):
-    """ret = False
-    for y in range(start_y, end_y):
-        for x in range(start_x, end_x):
-            if in_polygon(x, y, xp, yp):
-                ret = True
-    return ret"""
-    for y in range(start_y, end_y):
-        for x in range(start_x, end_x):
-            if in_polygon(x, y, xp, yp):
-                return True
-    return False
-
-
 class DetectorAPI:
     def __init__(self, path_to_ckpt, path_to_labels):
         self.detection_graph = tf.Graph()
-        with self.detection_graph.as_default():
-            od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
-                serialized_graph = fid.read()
-                od_graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(od_graph_def, name='')
+        with tf.device("/gpu:0"):
+            with self.detection_graph.as_default():
+                od_graph_def = tf.GraphDef()
+                with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
+                    serialized_graph = fid.read()
+                    od_graph_def.ParseFromString(serialized_graph)
+                    tf.import_graph_def(od_graph_def, name='')
 
         self.default_graph = self.detection_graph.as_default()
         self.sess = tf.Session(graph=self.detection_graph)
@@ -139,22 +126,52 @@ class UI(QMainWindow, design.Ui_MainWindow):
                                     path_to_labels=labels_path)
         self.start_video()
         self.setWindowTitle('Security System')
-        self.pushButton_1.clicked.connect(self.mark_up)
-        self.pushButton_2.clicked.connect(self.mark_down)
+        self.pushButton_1.clicked.connect(self.mark_up_1)
+        self.pushButton_3.clicked.connect(self.mark_up_2)
+        self.pushButton_5.clicked.connect(self.mark_up_3)
+        self.pushButton_9.clicked.connect(self.close)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
-        self.comboBox_2.currentTextChanged.connect(
-            self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
+        self.comboBox_2.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
         self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
         super().__init__()
-        self.width_standard = self.video_1.width()
-        self.width360 = self.video_3.width()
+        self.width_standard = self.comboBox_1.width()
+        self.width360 = self.comboBox_2.width()
 
-    @staticmethod
-    def mark_up():
+
+    #@staticmethod
+    def mark_up_1(self, event):
         global isPressMarkUpButton
-        isPressMarkUpButton = True
+        if not isPressMarkUpButton:
+            isPressMarkUpButton = True
+            self.pushButton_1.setText('Деактивировать')
+        else:
+            isPressMarkUpButton = False
+            self.pushButton_1.setText('Обозначить границы')
+            cv2.destroyAllWindows()
+        print('Button clicked ', isPressMarkUpButton)
+
+    def mark_up_2(self, event):
+        global isPressMarkUpButton
+        if not isPressMarkUpButton:
+            isPressMarkUpButton = True
+            self.pushButton_3.setText('Деактивировать')
+        else:
+            isPressMarkUpButton = False
+            self.pushButton_3.setText('Обозначить границы')
+            cv2.destroyAllWindows()
+        print('Button clicked ', isPressMarkUpButton)
+
+    def mark_up_3(self, event):
+        global isPressMarkUpButton
+        if not isPressMarkUpButton:
+            isPressMarkUpButton = True
+            self.pushButton_5.setText('Деактивировать')
+        else:
+            isPressMarkUpButton = False
+            self.pushButton_5.setText('Обозначить границы')
+            cv2.destroyAllWindows()
         print('Button clicked ', isPressMarkUpButton)
 
     @staticmethod
@@ -166,11 +183,19 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def start_video(self):
         # WORK VERSION
-        self.v1 = Video(src=0, detector=self.detector)
-        self.v2 = self.v1
+        self.v1 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        self.v1.mode1 = self.v1.mode
+        # self.v1.stop()
+        self.v2 = Video(src='rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        #self.v2 = self.v1
+        self.v2.mode2 = self.v2.mode
         # self.v2.stop()
-        self.v3 = self.v1
+        self.v3 = Video(src='rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        #self.v3 = self.v1
+        self.v3.mode3 = self.v3.mode
         # self.v3.stop()
+        self.v4 = Video(src=0, detector=self.detector)
+        self.v4.stop()
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -197,16 +222,16 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF DEBUG VERSION
 
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width360), self.width_standard)
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
             self.video_3.setPixmap(a)
-        #if self.v4.isPlay:
-            #self.v4.get_security_detected(self.width_standard)
+        # if self.v4.isPlay:
+        #     self.v4.get_security_detected(self.width_standard)
 
 
     def closeEvent(self, event):
@@ -246,8 +271,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0, detector=None, color1=(0, 255, 0),
-                 color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+    def __init__(self, src=0, detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
         self.mode = mode
         self.mode1 = mode
         self.mode2 = mode
@@ -277,7 +301,7 @@ class Video:
         frame = self.vs.read()
         if frame is None:
             _, frame = self.vc.read()
-        # frame = imutils.resize(frame, width=width)
+        #frame = imutils.resize(frame, width=width)
         # END OF WORK VERSION
 
         # DEBUG VERSION
@@ -336,7 +360,6 @@ class Video:
         if img is None:
             img = self.get_frame(width)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
-
         if isPressMarkUpButton:
             cv2.namedWindow("Frame")
         points = np.array(circles)
@@ -355,9 +378,7 @@ class Video:
             img = cv2.bitwise_and(img, stencil)
 
         if isPressMarkUpButton:
-           cv2.imshow("Frame", img)
-
-
+            cv2.imshow("Frame", img)
 
         key = cv2.waitKey(1)
         if key == ord("d"):
@@ -384,7 +405,7 @@ class Video:
             if isPolyCreated:
                 # print('ok its draw')
                 points = np.array(circles)
-                if (in_polygon((box[1] + box[3]) / 2, (box[0] + box[3]) / 2, points[:, 0], points[:, 1])):
+                if (in_polygon((box[1] + box[3]) / 2, (box[0] + box[2]) / 2, points[:, 0], points[:, 1])):
                     # print('draw 1')
                     # if(isPixelsInArea(startX, startY, endX, endY,points[:, 0], points[:, 1])):
                     cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color3, 2)
@@ -401,7 +422,7 @@ class Video:
     def get_image_qt(frame, width=600):
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(600, width*2, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(700, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
