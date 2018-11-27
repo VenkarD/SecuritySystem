@@ -6,7 +6,7 @@ import cv2
 import imutils
 
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -14,6 +14,7 @@ from imutils.video import VideoStream
 
 import design
 import cameramode
+from frame_analysis.object_detector import ObjectDetector
 
 duration = 1000  # millisecond
 freq = 440  # Hz
@@ -58,57 +59,6 @@ def in_polygon(x, y, xp, yp):
                 (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])): c = 1 - c
     return c
 
-class DetectorAPI:
-    def __init__(self, path_to_ckpt, path_to_labels):
-        self.detection_graph = tf.Graph()
-        with tf.device("/gpu:0"):
-            with self.detection_graph.as_default():
-                od_graph_def = tf.GraphDef()
-                with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
-                    serialized_graph = fid.read()
-                    od_graph_def.ParseFromString(serialized_graph)
-                    tf.import_graph_def(od_graph_def, name='')
-
-        self.default_graph = self.detection_graph.as_default()
-        self.sess = tf.Session(graph=self.detection_graph)
-
-        # Definite input and output Tensors for detection_graph
-        self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-        # Each box represents a part of the image where a particular object was detected.
-        self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-        # Each score represent how level of confidence for each of the objects.
-        # Score is shown on the result image, together with the class label.
-        self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
-        self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
-        self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-
-        with open(path_to_labels) as f:
-            self.labels = f.readlines()
-        self.labels = [s.strip() for s in self.labels]
-
-    def process(self, image):
-        # Expand dimensions since the trained_model expects images to have shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(image, axis=0)
-
-        # Actual detection.
-        (boxes, scores, classes, num) = self.sess.run(
-            [self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections],
-            feed_dict={self.image_tensor: image_np_expanded})
-
-        im_height, im_width, _ = image.shape
-        boxes_list = [None for i in range(boxes.shape[1])]
-        for i in range(boxes.shape[1]):
-            boxes_list[i] = (int(boxes[0, i, 0] * im_height),
-                             int(boxes[0, i, 1] * im_width),
-                             int(boxes[0, i, 2] * im_height),
-                             int(boxes[0, i, 3] * im_width))
-
-        return boxes_list, scores[0].tolist(), [int(x) for x in classes[0].tolist()], int(num[0])
-
-    def close(self):
-        self.sess.close()
-        # self.default_graph.close()  # AttributeError: '_GeneratorContextManager' object has no attribute 'close'
-
 
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
@@ -122,8 +72,8 @@ class UI(QMainWindow, design.Ui_MainWindow):
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
-        self.detector = DetectorAPI(path_to_ckpt=model_path,
-                                    path_to_labels=labels_path)
+        self.detector = ObjectDetector(path_to_ckpt=model_path,
+                                            path_to_labels=labels_path)
         self.start_video()
         self.setWindowTitle('Security System')
         self.pushButton_1.clicked.connect(self.mark_up_1)
@@ -135,7 +85,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
 
     def resizeEvent(self, event):
-        super().__init__()
+        super().__init__()  # ?
         self.width_standard = self.comboBox_1.width()
         self.width360 = self.comboBox_2.width()
 
@@ -183,7 +133,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def start_video(self):
         # WORK VERSION
-        self.v1 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
+        """self.v1 = Video(src='rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
         self.v1.mode1 = self.v1.mode
         # self.v1.stop()
         self.v2 = Video(src='rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream', detector=self.detector)
@@ -195,21 +145,28 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.v3.mode3 = self.v3.mode
         # self.v3.stop()
         self.v4 = Video(src=0, detector=self.detector)
-        self.v4.stop()
+        self.v4.stop()"""
         # END OF WORK VERSION
 
         # DEBUG VERSION
-        """self.v1 = Video(src='../cat.mp4',detector=self.detector)
-        self.v2 = Video(src='../people.mp4',detector=self.detector)
-        self.v2.stop()
-        self.v3 = Video(src='../people.mp4',detector=self.detector)
-        self.v3.stop()
-        self.count = 0"""
+        self.v1 = Video(src='../cat.mp4', detector=self.detector)
+        self.v1.mode1 = self.v1.mode
+        # self.v1.stop()
+        self.v2 = Video(src='../cat.mp4', detector=self.detector)
+        #self.v2 = self.v1
+        self.v2.mode2 = self.v2.mode
+        # self.v2.stop()
+        self.v3 = Video(src='../people.mp4', detector=self.detector)
+        #self.v3 = self.v1
+        self.v3.mode3 = self.v3.mode
+        # self.v3.stop()
+        self.v4 = Video(src=0, detector=self.detector)
+        self.v4.stop()
         # END OF DEBUG VERSION
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
-        self.timer.start(1)
+        self.timer.start(40)
 
     def update_video(self):
         # DEBUG VERSION
@@ -311,10 +268,10 @@ class Video:
         return frame
 
     # For first cam-capture
-    def detect(self, width=500, img=None):
-        if img is None:
-            img = self.get_frame(width)
-        boxes, scores, classes, num = self.detector.process(img)
+    def detect(self, width=500, frame=None):
+        if frame is None:
+            frame = self.get_frame(width)
+        boxes, scores, classes, num = self.detector.process(frame)
 
         d_boxes = []
         d_scores = []
@@ -330,7 +287,7 @@ class Video:
         if img is None:
             img = self.get_frame(width)
 
-        boxes, scores, classes = self.detect(width=width, img=img)
+        boxes, scores, classes = self.detect(frame=img)
         for i in range(len(boxes)):
             box = boxes[i]
             cv2.rectangle(img, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
@@ -393,7 +350,7 @@ class Video:
         frame = self.get_polygon_image(width)
         # (w, h) = frame.shape[:2]
 
-        boxes, scores, classes = self.detect(width=width, img=frame)
+        boxes, scores, classes = self.detect(width=width, frame=frame)
         print(len(boxes), 'object(s) detected')
 
         for i in range(len(boxes)):
