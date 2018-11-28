@@ -279,11 +279,11 @@ class Video:
             cv2.imshow(self.border_detector.windowId, self.border_detector.get_frame_polygon(frame))
 
         if self.mode == cameramode.DETECT_OBJECTS:
-            return self.get_frame_detected(frame)
+            return self.get_frame_objects(frame)
         elif self.mode == cameramode.DETECT_MOTION:
             return self.get_frame_motion(frame)
         elif self.mode == cameramode.DETECT_BORDERS:
-            return self.get_frame_polygon(frame)
+            return self.get_frame_borders(frame)
         else:
             return frame
 
@@ -294,7 +294,7 @@ class Video:
         # frame = imutils.resize(frame, width=width)
         return frame
 
-    def get_frame_detected(self, frame):
+    def get_frame_objects(self, frame):
         boxes, scores, classes = self.object_detector.process(frame)
 
         for i in range(len(boxes)):
@@ -313,7 +313,7 @@ class Video:
             cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), self.color1, 2)
         return frame
 
-    def get_frame_polygon(self, frame):
+    def get_frame_borders(self, frame):
         if not self.border_detector.isPolyCreated:
             return frame
 

@@ -37,7 +37,6 @@ class BorderDetector:
             cv2.circle(polygon_frame, center_position, 2, (0, 0, 255), -1)
 
         cv2.polylines(polygon_frame, np.int32([points]), True, (255, 255, 255), 3)
-        self.isPolyCreated = True
         stencil = np.zeros(polygon_frame.shape).astype(polygon_frame.dtype)
         stencil[:] = (255, 255, 255) # далее белым по белому?
         if len(points) >= 3:
