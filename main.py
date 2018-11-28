@@ -17,6 +17,7 @@ import design
 import cameramode
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
+from frame_analysis.motion_detector import MotionDetector
 
 duration = 1000  # millisecond
 freq = 440  # Hz
@@ -90,7 +91,6 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     #@staticmethod
     def mark_up_1(self, event):
-        
         if not self.v1.border_detector.isPressMarkUpButton:
             # self.v1.border_detector.isPressMarkUpButton = True
             self.v1.border_detector.start_selecting_region(str(datetime.now()))
@@ -150,18 +150,28 @@ class UI(QMainWindow, design.Ui_MainWindow):
         # END OF WORK VERSION
 
         # DEBUG VERSION
-        self.v1 = Video(src='../people.mp4', object_detector=self.object_detector, border_detector=BorderDetector())
+        self.v1 = Video(src='../people.mp4',
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector())
         self.v1.mode1 = self.v1.mode
         # self.v1.stop()
-        self.v2 = Video(src='../people.mp4', object_detector=self.object_detector, border_detector=BorderDetector())
+        self.v2 = Video(src='../people.mp4',
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector())
         #self.v2 = self.v1
         self.v2.mode2 = self.v2.mode
         # self.v2.stop()
-        self.v3 = Video(src='../people.mp4', object_detector=self.object_detector, border_detector=BorderDetector())
+        self.v3 = Video(src='../people.mp4',
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector())
         #self.v3 = self.v1
         self.v3.mode3 = self.v3.mode
         # self.v3.stop()
-        self.v4 = Video(src=0, object_detector=self.object_detector, border_detector=BorderDetector())
+        self.v4 = Video(src=0, object_detector=self.object_detector,
+                        border_detector=BorderDetector())
         self.v4.stop()
         # END OF DEBUG VERSION
 
@@ -197,6 +207,14 @@ class UI(QMainWindow, design.Ui_MainWindow):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.object_detector.close()
+            self.v1.vc.release()
+            self.v1.vs.stop()
+            self.v2.vc.release()
+            self.v2.vs.stop()
+            self.v3.vc.release()
+            self.v3.vs.stop()
+            self.v4.vc.release()
+            self.v4.vs.stop()
             event.accept()
         else:
             event.ignore()
@@ -212,6 +230,9 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     @staticmethod
     def change_mod_by_mod(value, obj):
+        if (obj.mode == cameramode.DETECT_MOTION):
+            obj.motion_detector.clear_queue()
+
         if value == "Обычный режим":
             obj.mode = cameramode.ORIGINAL
             cv2.destroyAllWindows()
@@ -219,6 +240,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
             obj.mode = cameramode.DETECT_OBJECTS
             cv2.destroyAllWindows()
         elif value == "Распознавание движения":
+            obj.motion_detector.clear_queue()
             obj.mode = cameramode.DETECT_MOTION
             cv2.destroyAllWindows()
         elif value == "Распознавание границ":
@@ -229,7 +251,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0, object_detector=None, border_detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+    def __init__(self, src=0, object_detector=None, border_detector=None, motion_detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
         self.mode = mode
         # для чего столько?
         self.mode1 = mode
@@ -241,6 +263,7 @@ class Video:
         # END OF DEBUG VERSION
         self.object_detector = object_detector
         self.border_detector = border_detector
+        self.motion_detector = motion_detector
         print("start")
         self.color1 = color1
         self.color2 = color2
@@ -257,6 +280,8 @@ class Video:
         # пока что не реализовано обнаружение движения - константа cameramode.DETECT_MOTION
         if self.mode == cameramode.DETECT_OBJECTS:
             return self.get_frame_detected(frame)
+        elif self.mode == cameramode.DETECT_MOTION:
+            return self.get_frame_motion(frame)
         elif self.mode == cameramode.DETECT_BORDERS:
             return self.get_polygon_frame(frame)
         else:
@@ -290,7 +315,7 @@ class Video:
 
         for i in range(len(boxes)):
             box = boxes[i]
-            cv2.rectangle(frame, (box[1], box[0]), (box[3], box[2]), self.color1, 2)
+            cv2.rectangle(frame, (box[3], box[2]), (box[1], box[0]), self.color1, 2)
             y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
             cv2.putText(frame, self.object_detector.labels[classes[i] - 1], (box[1], y),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
@@ -309,6 +334,14 @@ class Video:
             logger.debug("Security came")
         else:
             logger.debug("Security gone")
+
+    def get_frame_motion(self, frame):
+        boxes = self.motion_detector.process(frame)
+
+        for i in range(len(boxes)):
+            box = boxes[i]
+            cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), self.color1, 2)
+        return frame
 
     """def get_polygon_image(self, width=700, img=None):
         global circles

@@ -3,7 +3,7 @@ import cv2
 import tensorflow as tf
 from datetime import datetime
 
-from .i_frame_analyzer import IFrameAnalyzer
+# from .i_frame_analyzer import IFrameAnalyzer
 
 
 # сделать staticmethod/classmethod?

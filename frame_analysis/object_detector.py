@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from .i_frame_analyzer import IFrameAnalyzer
 
+
 class ObjectDetector(IFrameAnalyzer):
     # bad code
     def __init__(self, path_to_ckpt, path_to_labels, classes_to_detect, confidence_level):
@@ -37,6 +38,9 @@ class ObjectDetector(IFrameAnalyzer):
         self.confidence_level = confidence_level
 
     def process(self, frame):
+        if len(self.classes_to_detect) <= 0 or self.confidence_level > 1:
+            return [], [], []
+
         # Expand dimensions since the trained_model expects frames to have shape: [1, None, None, 3]
         frame_np_expanded = np.expand_dims(frame, axis=0)
 
@@ -49,9 +53,9 @@ class ObjectDetector(IFrameAnalyzer):
         all_boxes = [None for i in range(boxes.shape[1])]
         for i in range(boxes.shape[1]):
             all_boxes[i] = (int(boxes[0, i, 0] * im_height),
-                             int(boxes[0, i, 1] * im_width),
-                             int(boxes[0, i, 2] * im_height),
-                             int(boxes[0, i, 3] * im_width))
+                            int(boxes[0, i, 1] * im_width),
+                            int(boxes[0, i, 2] * im_height),
+                            int(boxes[0, i, 3] * im_width))
 
         all_scores = scores[0].tolist()
         all_classes = [int(x) for x in classes[0].tolist()]
@@ -65,11 +69,8 @@ class ObjectDetector(IFrameAnalyzer):
                 ret_scores.append(all_scores[i])
                 ret_classes.append(all_classes[i])
 
-
-
         # чем полезен int(num[0]) ?
-        print('len(all_boxes) =', len(ret_boxes), 'int(num[0]) =', int(num[0]))
-
+        # print('len(all_boxes) =', len(ret_boxes), 'int(num[0]) =', int(num[0]))
         return ret_boxes, ret_scores, ret_classes
 
     def close(self):
