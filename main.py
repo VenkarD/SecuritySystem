@@ -45,12 +45,6 @@ CLASSES_TO_DETECT = [
    # номер класса = номер строки, нумерация с 1
 
 
-"""def mouse_drawing(event, x, y, flags, params):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print("Left click")
-        circles.append((x, y))"""
-
-
 def in_polygon(x, y, xp, yp):
     c = 0
     for i in range(len(xp)):
@@ -198,15 +192,6 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.timer.start(40)
 
     def update_video(self):
-        # DEBUG VERSION
-        """self.v1.get_frame()
-        self.count += 1
-        if self.count % 30 == 0:
-            print('Frame', self.count)
-        if self.count < 925:
-            return"""
-        # END OF DEBUG VERSION
-
         if self.v1.isPlay:
             a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
             self.video_1.setPixmap(a)
@@ -276,9 +261,7 @@ class Video:
         self.mode2 = mode
         self.mode3 = mode
         self.vc = cv2.VideoCapture(src)
-        # DEBUG VERSION
         self.vs = VideoStream(src=src).start()
-        # END OF DEBUG VERSION
         self.object_detector = object_detector
         self.border_detector = border_detector
         self.motion_detector = motion_detector
@@ -293,15 +276,14 @@ class Video:
 
         # bad code
         if self.border_detector.isPressMarkUpButton:
-            cv2.imshow(self.border_detector.windowId, self.border_detector.get_polygon_image(frame))
+            cv2.imshow(self.border_detector.windowId, self.border_detector.get_frame_polygon(frame))
 
-        # пока что не реализовано обнаружение движения - константа cameramode.DETECT_MOTION
         if self.mode == cameramode.DETECT_OBJECTS:
             return self.get_frame_detected(frame)
         elif self.mode == cameramode.DETECT_MOTION:
             return self.get_frame_motion(frame)
         elif self.mode == cameramode.DETECT_BORDERS:
-            return self.get_polygon_frame(frame)
+            return self.get_frame_polygon(frame)
         else:
             return frame
 
@@ -310,33 +292,9 @@ class Video:
         if frame is None:
             _, frame = self.vc.read()
         # frame = imutils.resize(frame, width=width)
-        # END OF WORK VERSION
-
-        # DEBUG VERSION
-        """_, frame = self.vc.read()"""
-        # END OF DEBUG VERSION
-
         return frame
 
-    # For first cam-capture
-    """def detect(self, width=500, frame=None):
-        if frame is None:
-            frame = self.get_frame(width)
-        boxes, scores, classes, num = self.object_detector.process(frame)
-
-        d_boxes = []
-        d_scores = []
-        d_classes = []
-        for i in range(len(boxes)):
-            if classes[i] in CLASSES_TO_DETECT and scores[i] > CONFIDENCE_LEVEL:
-                d_boxes.append(boxes[i])
-                d_scores.append(scores[i])
-                d_classes.append(classes[i])
-
-        return d_boxes, d_scores, d_classes"""
-
     def get_frame_detected(self, frame):
-        # boxes, scores, classes = self.detect(frame=img)
         boxes, scores, classes = self.object_detector.process(frame)
 
         for i in range(len(boxes)):
@@ -347,20 +305,6 @@ class Video:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
-    def get_security_detected(self, width=500, img=None):
-        global secState
-
-        if img is None:
-            img = self.get_frame(width)
-            boxes, scores, classes = self.detect(width=width, img=img)
-
-        if secState != (len(boxes) > 0):
-            secState = (len(boxes) > 0)
-        if secState:
-            logger.debug("Security came")
-        else:
-            logger.debug("Security gone")
-
     def get_frame_motion(self, frame):
         boxes = self.motion_detector.process(frame)
 
@@ -369,48 +313,12 @@ class Video:
             cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), self.color1, 2)
         return frame
 
-    """def get_polygon_image(self, width=700, img=None):
-        global circles
-        global isPressMarkUpButton
-        global isPolyCreated
-        if img is None:
-            img = self.get_frame(width)
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # продублировано в get_image_qt()
-        if isPressMarkUpButton:
-            cv2.namedWindow("Frame")
-        points = np.array(circles)
-
-        if isPressMarkUpButton:
-            cv2.setMouseCallback("Frame", mouse_drawing)
-            for center_position in circles:
-                cv2.circle(img, center_position, 2, (0, 0, 255), -1)
-
-        if len(points) >= 4 and isPressMarkUpButton == False:
-            cv2.polylines(img, np.int32([points]), 1, (255, 255, 255))
-            isPolyCreated = True
-            stencil = np.zeros(img.shape).astype(img.dtype)
-            stencil[:] = (255, 255, 255)
-            cv2.fillPoly(stencil, np.int32([points]), (255, 255, 255))
-            img = cv2.bitwise_and(img, stencil)
-
-        if isPressMarkUpButton:
-            cv2.imshow("Frame", img)
-
-        key = cv2.waitKey(1)
-        if key == ord("d"):
-            circles = []
-            isPressMarkUpButton = False
-            isPolyCreated = False
-            img = self.get_frame()
-
-        return img"""
-
-    def get_polygon_frame(self, frame):
+    def get_frame_polygon(self, frame):
         if not self.border_detector.isPolyCreated:
             return frame
 
-        frame_with_polygon = self.border_detector.get_polygon_image(frame)
         boxes, scores, classes = self.object_detector.process(frame)
+        frame = self.border_detector.get_frame_polygon(frame)  # ?
         #print(len(boxes), 'object(s) detected')
 
         for i in range(len(boxes)):
@@ -434,6 +342,20 @@ class Video:
                     y = box[0] - 15 if box[0] - 15 > 15 else box[0] + 15
                     cv2.putText(frame, label, (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
+
+    def get_security_detected(self, width=500, img=None):
+        global secState
+
+        if img is None:
+            img = self.get_frame(width)
+            boxes, scores, classes = self.detect(width=width, img=img)
+
+        if secState != (len(boxes) > 0):
+            secState = (len(boxes) > 0)
+        if secState:
+            logger.debug("Security came")
+        else:
+            logger.debug("Security gone")
 
     @staticmethod
     def get_image_qt(frame, width=600):
