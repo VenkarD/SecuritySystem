@@ -34,6 +34,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+CAM_FPS = 25  # позже получить программно для каждой камеры, пока что так
+PROCESS_PERIOD = 5  # период обновления информации детекторами
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -186,7 +188,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
             vsrc3 = '../people.mp4'
             vsrc4 = '../people.mp4'
         else:
-            vsrc1 = 0 #'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
+            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
             vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc3 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
@@ -194,24 +196,27 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.v1 = Video(src=vsrc1,
                         object_detector=self.object_detector,
                         border_detector=BorderDetector(),
-                        motion_detector=MotionDetector())
+                        motion_detector=MotionDetector(),
+                        init_fc=0)
         self.v1.mode1 = self.v1.mode
         self.v2 = self.v1
         self.v3 = self.v1
-        # self.v1.stop()
-        # self.v2 = Video(src=vsrc2,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector())
-        # #self.v2 = self.v1
-        # self.v2.mode2 = self.v2.mode
-        # # self.v2.stop()
-        # self.v3 = Video(src=vsrc3,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector())
-        # #self.v3 = self.v1
-        # self.v3.mode3 = self.v3.mode
+        self.v1.stop()
+        self.v2 = Video(src=vsrc2,
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector(),
+                        init_fc=1)
+        #self.v2 = self.v1
+        self.v2.mode2 = self.v2.mode
+        # self.v2.stop()
+        self.v3 = Video(src=vsrc3,
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector(),
+                        init_fc=2)
+        #self.v3 = self.v1
+        self.v3.mode3 = self.v3.mode
         # # self.v3.stop()
         # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
         #                 border_detector=BorderDetector())
@@ -284,7 +289,9 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
 
 class Video:
-    def __init__(self, src=0, object_detector=None, border_detector=None, motion_detector=None, color1=(0, 255, 0), color2=(0, 0, 255), color3=(255, 0, 0), mode=cameramode.ORIGINAL):
+    def __init__(self, src=0, object_detector=None, border_detector=None,
+                 motion_detector=None, color1=(0, 255, 0), color2=(0, 0, 255),
+                 color3=(255, 0, 0), mode=cameramode.ORIGINAL, init_fc = 0):
         self.mode = mode
         # для чего столько?
         self.mode1 = mode
@@ -295,11 +302,13 @@ class Video:
         self.object_detector = object_detector
         self.border_detector = border_detector
         self.motion_detector = motion_detector
-        print("start")
         self.color1 = color1
         self.color2 = color2
         self.color3 = color3
+        self.last_gf_func = lambda frame: frame  # последний результат обработки (в виде функции)
+        self.frame_counter = init_fc
         self.isPlay = True
+        print("start")
 
     def get_smart_frame(self, width=500):
         frame = self.get_frame(width)
@@ -308,14 +317,27 @@ class Video:
         if self.border_detector.isPressMarkUpButton:
             cv2.imshow(self.border_detector.windowId, self.border_detector.get_frame_polygon(frame))
 
-        if self.mode == cameramode.DETECT_OBJECTS:
-            return self.get_frame_objects(frame)
-        elif self.mode == cameramode.DETECT_MOTION:
-            return self.get_frame_motion(frame)
-        elif self.mode == cameramode.DETECT_BORDERS:
-            return self.get_frame_borders(frame)
-        else:
+        self.frame_counter = (self.frame_counter + 1) % PROCESS_PERIOD
+        if self.mode == cameramode.ORIGINAL:
             return frame
+
+        if self.frame_counter == 0:
+            if self.mode == cameramode.DETECT_OBJECTS:
+                boxes, scores, classes = self.object_detector.process(frame)
+                self.last_gf_func = lambda frame:  \
+                    self.get_frame_objects(frame, boxes, classes)
+            elif self.mode == cameramode.DETECT_MOTION:
+                boxes = self.motion_detector.process(frame)
+                self.last_gf_func = lambda frame: \
+                    self.get_frame_motion(frame, boxes)
+            elif self.mode == cameramode.DETECT_BORDERS:
+                boxes, scores, classes = self.object_detector.process(frame)
+                self.last_gf_func = lambda frame: \
+                    self.get_frame_borders(frame, boxes, classes)
+            else:
+                self.last_gf_func = lambda frame: frame
+        return self.last_gf_func(frame)
+
 
     def get_frame(self, width=500):
         frame = self.vs.read()
@@ -324,9 +346,8 @@ class Video:
         # frame = imutils.resize(frame, width=width)
         return frame
 
-    def get_frame_objects(self, frame):
-        boxes, scores, classes = self.object_detector.process(frame)
-
+    def get_frame_objects(self, frame, boxes, classes):
+        print('Boxes is', boxes)
         for i in range(len(boxes)):
             box = boxes[i]
             cv2.rectangle(frame, (box[3], box[2]), (box[1], box[0]), self.color1, 2)
@@ -335,19 +356,16 @@ class Video:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
-    def get_frame_motion(self, frame):
-        boxes = self.motion_detector.process(frame)
-
+    def get_frame_motion(self, frame, boxes):
         for i in range(len(boxes)):
             box = boxes[i]
             cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), self.color1, 2)
         return frame
 
-    def get_frame_borders(self, frame):
+    def get_frame_borders(self, frame, boxes, classes):
         if not self.border_detector.isPolyCreated:
             return frame
 
-        boxes, scores, classes = self.object_detector.process(frame)
         frame = self.border_detector.get_frame_polygon(frame)  # ?
         #print(len(boxes), 'object(s) detected')
 
