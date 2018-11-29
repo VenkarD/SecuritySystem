@@ -13,6 +13,11 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(980, 605)
         self.centralWidget = QtWidgets.QWidget(MainWindow)
+
+        # pal = self.centralWidget.palette()
+        # pal.setBrush(QtGui.QPalette.Normal, QtGui.QPalette.Background,
+        #              QtGui.QBrush(QtGui.QPixmap("Fone.jpg")))
+
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)

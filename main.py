@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import *
 from imutils.video import VideoStream
 from datetime import datetime
 
-import design
+#import design
+import SecuritySystemGUI
 import cameramode
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
@@ -89,15 +90,15 @@ class SecondWindow(QWidget):
             self.buttons.append(but)
         self.setLayout(self.mainLayout)
 
-class UI(QMainWindow, design.Ui_MainWindow):
+class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
         # и т.д. в файле design.py
         super().__init__()
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.image = None
-        self.width_standard = 600
-        self.width360 = 800
+        self.width_standard = 1200
+        self.width360 = 1600
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
@@ -120,8 +121,8 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def resizeEvent(self, event):
         # super().__init__()  # ?
-        self.width_standard = self.comboBox_1.width()
-        self.width360 = self.comboBox_2.width()
+        self.width_standard = self.comboBox_1.width()*5
+        self.width360 = self.comboBox_2.width()*5
 
     def setings_open(self, event):
         print("it's realy settingsButton")
@@ -186,9 +187,9 @@ class UI(QMainWindow, design.Ui_MainWindow):
             vsrc3 = '../people.mp4'
             vsrc4 = '../people.mp4'
         else:
-            vsrc1 = 0 #'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
+            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
             vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrc3 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrc3 = 0# 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
 
         self.v1 = Video(src=vsrc1,
@@ -196,22 +197,20 @@ class UI(QMainWindow, design.Ui_MainWindow):
                         border_detector=BorderDetector(),
                         motion_detector=MotionDetector())
         self.v1.mode1 = self.v1.mode
-        self.v2 = self.v1
-        self.v3 = self.v1
         # self.v1.stop()
-        # self.v2 = Video(src=vsrc2,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector())
+        self.v2 = Video(src=vsrc2,
+                         object_detector=self.object_detector,
+                         border_detector=BorderDetector(),
+                         motion_detector=MotionDetector())
         # #self.v2 = self.v1
-        # self.v2.mode2 = self.v2.mode
+        self.v2.mode2 = self.v2.mode
         # # self.v2.stop()
-        # self.v3 = Video(src=vsrc3,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector())
-        # #self.v3 = self.v1
-        # self.v3.mode3 = self.v3.mode
+        self.v3 = Video(src=vsrc3,
+                         object_detector=self.object_detector,
+                         border_detector=BorderDetector(),
+                         motion_detector=MotionDetector())
+        #self.v3 = self.v1
+        self.v3.mode3 = self.v3.mode
         # # self.v3.stop()
         # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
         #                 border_detector=BorderDetector())
@@ -392,7 +391,7 @@ class Video:
         assert frame is not None, 'Кадр пуст'
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(700, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(1400, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
@@ -418,6 +417,13 @@ def main():
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
     window.object_detector.process(np.zeros((1, 1, 3)))
+
+    #window.setWindowOpacity(0.5)
+    # pal = window.palette()
+    # pal.setBrush(QPalette.Normal, QPalette.Background,
+    #              QBrush(QPixmap("Fone.jpg")))
+    # window.setPalette(pal)
+    # window.setAutoFillBackground(True)
     window.show()  # Показываем окно
     splash.finish(window)
     app.exec_()  # и запускаем прило
