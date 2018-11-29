@@ -71,6 +71,24 @@ class Splash(QSplashScreen):
         #self.progress.setValue(self.progress.value() + 1)
         #event.accept()
 
+class SecondWindow(QWidget):
+    def __init__(self, parent=None):
+        # Передаём ссылку на родительский элемент и чтобы виджет
+        # отображался как самостоятельное окно указываем тип окна
+        super().__init__(parent, Qt.Window)
+        self.setWindowTitle('Settings')
+        self.build()
+
+    def build(self):
+        self.mainLayout = QVBoxLayout()
+
+        self.buttons = []
+        for i in range(5):
+            but = QPushButton('button {}'.format(i), self)
+            self.mainLayout.addWidget(but)
+            self.buttons.append(but)
+        self.setLayout(self.mainLayout)
+
 class UI(QMainWindow, design.Ui_MainWindow):
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
@@ -92,15 +110,25 @@ class UI(QMainWindow, design.Ui_MainWindow):
         self.pushButton_1.clicked.connect(self.mark_up_1)
         self.pushButton_3.clicked.connect(self.mark_up_2)
         self.pushButton_5.clicked.connect(self.mark_up_3)
+        self.pushButton_8.clicked.connect(self.setings_open)
         self.pushButton_9.clicked.connect(self.close)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
         self.comboBox_2.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
         self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
+        self.secondWin = None
+        self.update_video()
 
     def resizeEvent(self, event):
         # super().__init__()  # ?
         self.width_standard = self.comboBox_1.width()
         self.width360 = self.comboBox_2.width()
+
+    def setings_open(self, event):
+        print("it's realy settingsButton")
+        if not self.secondWin:
+            self.secondWin = SecondWindow(self)
+        self.secondWin.show()
+
 
 
     #@staticmethod
@@ -158,7 +186,7 @@ class UI(QMainWindow, design.Ui_MainWindow):
             vsrc3 = '../people.mp4'
             vsrc4 = '../people.mp4'
         else:
-            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
+            vsrc1 = 0 #'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
             vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc3 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
@@ -168,24 +196,26 @@ class UI(QMainWindow, design.Ui_MainWindow):
                         border_detector=BorderDetector(),
                         motion_detector=MotionDetector())
         self.v1.mode1 = self.v1.mode
+        self.v2 = self.v1
+        self.v3 = self.v1
         # self.v1.stop()
-        self.v2 = Video(src=vsrc2,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector())
-        #self.v2 = self.v1
-        self.v2.mode2 = self.v2.mode
-        # self.v2.stop()
-        self.v3 = Video(src=vsrc3,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector())
-        #self.v3 = self.v1
-        self.v3.mode3 = self.v3.mode
-        # self.v3.stop()
-        self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
-                        border_detector=BorderDetector())
-        self.v4.stop()
+        # self.v2 = Video(src=vsrc2,
+        #                 object_detector=self.object_detector,
+        #                 border_detector=BorderDetector(),
+        #                 motion_detector=MotionDetector())
+        # #self.v2 = self.v1
+        # self.v2.mode2 = self.v2.mode
+        # # self.v2.stop()
+        # self.v3 = Video(src=vsrc3,
+        #                 object_detector=self.object_detector,
+        #                 border_detector=BorderDetector(),
+        #                 motion_detector=MotionDetector())
+        # #self.v3 = self.v1
+        # self.v3.mode3 = self.v3.mode
+        # # self.v3.stop()
+        # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
+        #                 border_detector=BorderDetector())
+        # self.v4.stop()
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
@@ -193,13 +223,13 @@ class UI(QMainWindow, design.Ui_MainWindow):
 
     def update_video(self):
         if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard))
+            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
             self.video_1.setPixmap(a)
         if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard))
+            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard))
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
             self.video_3.setPixmap(a)
         # if self.v4.isPlay:
         #     self.v4.get_security_detected(self.width_standard)
@@ -216,8 +246,8 @@ class UI(QMainWindow, design.Ui_MainWindow):
             self.v2.vs.stop()
             self.v3.vc.release()
             self.v3.vs.stop()
-            self.v4.vc.release()
-            self.v4.vs.stop()
+            #self.v4.vc.release()
+            #self.v4.vs.stop()
             event.accept()
         else:
             event.ignore()
