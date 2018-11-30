@@ -18,7 +18,10 @@ class ObjectDetector(IFrameAnalyzer):
                     tf.import_graph_def(od_graph_def, name='')
 
         self.default_graph = self.detection_graph.as_default()
-        self.sess = tf.Session(graph=self.detection_graph)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.log_device_placement = True
+        self.sess = tf.Session(graph=self.detection_graph, config=config)
 
         # Definite input and output Tensors for detection_graph
         self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')

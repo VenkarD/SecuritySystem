@@ -210,6 +210,9 @@ background-image: url(:/newPrefix/Black_bk.jpg);</string>
      <height>21</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true">background-image: url(:/newPrefix/ButtonBK_2.jpg);</string>
+   </property>
    <property name="text">
     <string>PushButton</string>
    </property>

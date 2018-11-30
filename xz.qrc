@@ -1,8 +1,10 @@
 <RCC>
   <qresource prefix="newPrefix">
+    <file>ButtonBK_2.jpg</file>
     <file>buttonBK.jpg</file>
     <file>Black_bk.jpg</file>
     <file>Settings.jpg</file>
     <file>Fone.jpg</file>
+    <file>Log.jpg</file>
   </qresource>
 </RCC>

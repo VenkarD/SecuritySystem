@@ -16,6 +16,7 @@ from datetime import datetime
 #import design
 import SecuritySystemGUI
 import Settings
+import Log
 
 import cameramode
 from frame_analysis.object_detector import ObjectDetector
@@ -35,7 +36,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 CAM_FPS = 25  # позже получить программно для каждой камеры, пока что так
-PROCESS_PERIOD = 5  # период обновления информации детекторами
+PROCESS_PERIOD = 1  # период обновления информации детекторами
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -84,6 +85,21 @@ class SecWin(QWidget, Settings.Ui_Settings):
         self.setupUi(self)
         self.setWindowTitle('Settings')
         self.returnButton.clicked.connect(self.returnToMain)
+        self.setWindowIcon(QIcon("icon_settings.png"))
+
+
+    def returnToMain(self, event):
+        self.destroy()
+
+# Окно Log'a
+class LogWin(QWidget, Log.Ui_Log):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle('Log')
+        self.pushButton.clicked.connect(self.returnToMain)
+        self.setWindowIcon(QIcon("icon_log.png"))
+
 
     def returnToMain(self, event):
         self.destroy()
@@ -97,7 +113,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.image = None
         self.width_standard = 1200
-        self.width360 = 1600
+        self.width360 = 100
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = model_name + '/frozen_inference_graph.pb'  # HERE
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
@@ -112,24 +128,33 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.pushButton_5.clicked.connect(self.mark_up_3)
         self.pushButton_8.clicked.connect(self.setings_open)
         self.pushButton_9.clicked.connect(self.close)
+        self.pushButton_6.clicked.connect(self.log_open)
         self.comboBox_1.currentTextChanged.connect(self.video_one_change_mode)
         self.comboBox_2.currentTextChanged.connect(self.video_two_change_mode)  # есть подозрения что можно передавать значения в функцию
         self.comboBox_3.currentTextChanged.connect(self.video_three_change_mode)
         self.secondWin = None
+        self.logWin    = None
         self.update_video()
 
     def resizeEvent(self, event):
         # super().__init__()  # ?
         self.width_standard = self.comboBox_1.width()*5
-        self.width360 = self.comboBox_2.width()*5
+        self.width360 = self.comboBox_2.width()*8
 
     def setings_open(self, event):
-        print("it's realy settingsButton")
+        #print("it's realy settingsButton")
         if not self.secondWin:
             self.secondWin = SecWin()
         self.secondWin.show()
 
-
+    def log_open(self, event):
+        if not self.logWin:
+            self.logWin = LogWin()
+        self.logWin.show()
+        f = open("log.txt", 'r')
+        mytext = f.read()
+        self.logWin.textEdit.setPlainText(mytext)
+        f.close()
 
     #@staticmethod
     def mark_up_1(self, event):
@@ -188,9 +213,9 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         else:
             vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrc3 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrc3 = 0#'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
 
-            vsrc4 = 0
+            vsrc4 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
 
         self.v1 = Video(src=vsrc1,
                         object_detector=self.object_detector,
@@ -198,25 +223,25 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
                         motion_detector=MotionDetector(),
                         init_fc=0)
         self.v1.mode1 = self.v1.mode
-        self.v2 = self.v1
-        self.v3 = self.v1
+        #self.v2 = self.v1
+        #self.v3 = self.v1
         # self.v1.stop()
-        # self.v2 = Video(src=vsrc2,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector(),
-        #                 init_fc=1)
-        # #self.v2 = self.v1
-        # self.v2.mode2 = self.v2.mode
+        self.v2 = Video(src=vsrc2,
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector(),
+                        init_fc=1)
+        #self.v2 = self.v1
+        self.v2.mode2 = self.v2.mode
         # # self.v2.stop()
-        # self.v3 = Video(src=vsrc3,
-        #                 object_detector=self.object_detector,
-        #                 border_detector=BorderDetector(),
-        #                 motion_detector=MotionDetector(),
-        #                 init_fc=2)
-        # #self.v3 = self.v1
+        self.v3 = Video(src=vsrc3,
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector(),
+                        init_fc=2)
+        #self.v3 = self.v1
         self.v3.mode3 = self.v3.mode
-        # # self.v3.stop()
+        # self.v3.stop()
         self.v4 = Video(src=vsrc4,
                         object_detector=self.object_detector,
                         border_detector=BorderDetector(),
@@ -229,6 +254,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.timer.start(40)
 
     def update_video(self):
+        lasttime = datetime.now()
         if self.v1.isPlay:
             a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
             self.video_1.setPixmap(a)
@@ -236,10 +262,11 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
             a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
             self.video_2.setPixmap(a)
         if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
+            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width360), self.width360)
             self.video_3.setPixmap(a)
         if self.v4.isPlay:
             self.v4.get_security_detected(self.v4.get_frame(self.width_standard))
+        print('{}'.format(datetime.now() - lasttime))
 
 
     def closeEvent(self, event):
@@ -253,8 +280,8 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
             self.v2.vs.stop()
             self.v3.vc.release()
             self.v3.vs.stop()
-            #self.v4.vc.release()
-            #self.v4.vs.stop()
+            self.v4.vc.release()
+            self.v4.vs.stop()
             event.accept()
         else:
             event.ignore()
@@ -398,6 +425,7 @@ class Video:
         global security_check_series
         global security_check_period
         global security_frame_counter
+        log_str = ""
 
         security_frame_counter = (security_frame_counter + 1) % security_check_period
 
@@ -415,6 +443,14 @@ class Video:
             print('{}: охранник {}'.format(datetime.now().\
                     strftime('%d.%m.%y %H:%M'),\
                     'на месте' if security_curr_state else 'отсутствует'))
+            log_str = '{}: охранник {}'.format(datetime.now().\
+                    strftime('%d.%m.%y %H:%M'),\
+                    'на месте' if security_curr_state else 'отсутствует')
+
+        if(log_str != ""):
+            f = open('log.txt', 'a')
+            f.write(log_str + '\n')
+            f.close()
 
         """if security_state != (len(boxes) > 0):
             security_state = (len(boxes) > 0)
@@ -428,7 +464,7 @@ class Video:
         assert frame is not None, 'Кадр пуст'
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(1400, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
+        p = convert_to_qt_format.scaled(1800, width*0.6, Qt.KeepAspectRatio)  # текущие координаты
         return QPixmap.fromImage(p)
 
     def play(self):
@@ -445,8 +481,6 @@ class Video:
         else:
             self.mode = state
 
-starttime = datetime.now()
-global lasttime
 
 def main():
     app = QApplication(sys.argv)  # Новый экземпляр QApplication
@@ -462,6 +496,7 @@ def main():
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
     window.setWindowIcon(QIcon("icon.png"))
+    window.setWindowTitle("Security system")
     window.show()  # Показываем окно
     splash.finish(window)
     app.exec_()  # и запускаем прило

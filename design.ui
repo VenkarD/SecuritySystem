@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>873</width>
-    <height>544</height>
+    <width>666</width>
+    <height>406</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,56 +23,14 @@
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="3" column="0">
-       <widget class="QComboBox" name="comboBox_3">
-        <item>
-         <property name="text">
-          <string>Обычный режим</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Распознавание людей</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Распознавание движения</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Распознавание границ</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="0" column="2" colspan="2">
+      <item row="1" column="2" colspan="2">
        <widget class="QLabel" name="video_2">
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <layout class="QGridLayout" name="gridLayout_3">
-        <item row="0" column="0">
-         <widget class="QPushButton" name="pushButton_1">
-          <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QPushButton" name="pushButton_2">
-          <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QComboBox" name="comboBox_1">
         <property name="maximumSize">
          <size>
@@ -102,14 +60,81 @@
         </item>
        </widget>
       </item>
-      <item row="0" column="0" colspan="2">
+      <item row="1" column="0" colspan="2">
        <widget class="QLabel" name="video_1">
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="4" column="0">
+       <widget class="QComboBox" name="comboBox_3">
+        <item>
+         <property name="text">
+          <string>Обычный режим</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Распознавание людей</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Распознавание движения</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Распознавание границ</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="1">
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="pushButton_1">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="3" column="3" rowspan="2">
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="1" column="0">
+         <widget class="QPushButton" name="pushButton_8">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QPushButton" name="pushButton_9">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="pushButton_7">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="2">
        <widget class="QComboBox" name="comboBox_2">
         <property name="maximumSize">
          <size>
@@ -139,7 +164,28 @@
         </item>
        </widget>
       </item>
-      <item row="1" column="3">
+      <item row="4" column="1">
+       <widget class="QPushButton" name="pushButton_5">
+        <property name="text">
+         <string>PushButton</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="3">
+       <widget class="QLabel" name="video_3">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QPushButton" name="pushButton_6">
+        <property name="text">
+         <string>PushButton</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
        <layout class="QGridLayout" name="gridLayout_5">
         <item row="0" column="0">
          <widget class="QPushButton" name="pushButton_3">
@@ -156,52 +202,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item row="2" column="0" colspan="3">
-       <widget class="QLabel" name="video_3">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3" rowspan="2">
-       <layout class="QGridLayout" name="gridLayout_6">
-        <item row="1" column="0">
-         <widget class="QPushButton" name="pushButton_8">
-          <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QPushButton" name="pushButton_7">
-          <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QPushButton" name="pushButton_9">
-          <property name="text">
-           <string>PushButton</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="3" column="1">
-       <widget class="QPushButton" name="pushButton_5">
-        <property name="text">
-         <string>PushButton</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2">
-       <widget class="QPushButton" name="pushButton_6">
-        <property name="text">
-         <string>PushButton</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>
@@ -226,6 +226,8 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="xz.qrc"/>
+ </resources>
  <connections/>
 </ui>
