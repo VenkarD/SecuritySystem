@@ -25,9 +25,6 @@ from datetime import datetime
 duration = 1000  # millisecond
 freq = 440  # Hz
 
-global secState
-secState = False
-
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -46,6 +43,20 @@ CLASSES_TO_DETECT = [
     17      # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
    # номер класса = номер строки, нумерация с 1
+
+# bad bad rly bad code
+# will be reworked later
+# don't read just scroll down
+global security_curr_state
+security_curr_state = False
+global security_prev_state
+security_prev_state = False
+global security_check_series
+security_check_series = 5  # количество кадров в серии, если вдруг с первого раза сеть его не распознала
+global security_check_period
+security_check_period = 30 * CAM_FPS - security_check_series  # период проверки охранника
+global security_frame_counter
+security_frame_counter = security_check_period - 1
 
 
 def in_polygon(x, y, xp, yp):
@@ -189,9 +200,9 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
             vsrc3 = '../people.mp4'
             vsrc4 = '../people.mp4'
         else:
-            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
+            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrc3 = 0# 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrc3 = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
 
         self.v1 = Video(src=vsrc1,
@@ -219,8 +230,11 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         #self.v3 = self.v1
         self.v3.mode3 = self.v3.mode
         # # self.v3.stop()
-        # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
-        #                 border_detector=BorderDetector())
+        self.v4 = Video(src=vsrc4,
+                        object_detector=self.object_detector,
+                        border_detector=BorderDetector(),
+                        motion_detector=MotionDetector(),
+                        init_fc=3)
         # self.v4.stop()
 
         self.timer = QTimer()
@@ -237,8 +251,8 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         if self.v3.isPlay:
             a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
             self.video_3.setPixmap(a)
-        # if self.v4.isPlay:
-        #     self.v4.get_security_detected(self.width_standard)
+        if self.v4.isPlay:
+            self.v4.get_security_detected(self.v4.get_frame(self.width_standard))
 
 
     def closeEvent(self, event):
@@ -391,19 +405,36 @@ class Video:
                     cv2.putText(frame, label, (box[1], y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.color1, 2)
         return frame
 
-    def get_security_detected(self, width=500, img=None):
-        global secState
+    def get_security_detected(self, frame):
+        global security_curr_state
+        global security_prev_state
+        global security_check_series
+        global security_check_period
+        global security_frame_counter
 
-        if img is None:
-            img = self.get_frame(width)
-            boxes, scores, classes = self.detect(width=width, img=img)
+        security_frame_counter = (security_frame_counter + 1) % security_check_period
 
-        if secState != (len(boxes) > 0):
-            secState = (len(boxes) > 0)
-        if secState:
+        if security_frame_counter == 0:
+            security_prev_state = security_curr_state
+            security_curr_state = False
+        if not security_curr_state and security_frame_counter < security_check_series:
+            boxes, scores, classes = self.object_detector.process(frame)
+            for oneclass in classes:
+                if oneclass == 1:  # person
+                    security_curr_state = True
+                    break
+        elif security_frame_counter == security_check_series and \
+                security_curr_state != security_prev_state:
+            print('{}: охранник {}'.format(datetime.now().\
+                    strftime('%d.%m.%y %H:%M'),\
+                    'на месте' if security_curr_state else 'отсутствует'))
+
+        """if security_state != (len(boxes) > 0):
+            security_state = (len(boxes) > 0)
+        if security_state:
             logger.debug("Security came")
         else:
-            logger.debug("Security gone")
+            logger.debug("Security gone")"""
 
     @staticmethod
     def get_image_qt(frame, width=600):
