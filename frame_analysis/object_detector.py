@@ -6,19 +6,20 @@ from .i_frame_analyzer import IFrameAnalyzer
 
 class ObjectDetector(IFrameAnalyzer):
     # bad code
-    def __init__(self, path_to_ckpt, path_to_labels, classes_to_detect, confidence_level):
-        super().__init__()            
-        self.detection_graph = tf.Graph()
-        with tf.device("/gpu:0"):
-            with self.detection_graph.as_default():
-                od_graph_def = tf.GraphDef()
-                with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
-                    serialized_graph = fid.read()
-                    od_graph_def.ParseFromString(serialized_graph)
-                    tf.import_graph_def(od_graph_def, name='')
+    def __init__(self, detection_graph, labels, classes_to_detect, confidence_level):
+        super().__init__()      
+        self.detection_graph = detection_graph      
+        """self.detection_graph = tf.Graph()
+        with self.detection_graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(od_graph_def, name='')"""
 
         self.default_graph = self.detection_graph.as_default()
         self.sess = tf.Session(graph=self.detection_graph)
+        self.labels = labels
 
         # Definite input and output Tensors for detection_graph
         self.image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
@@ -29,10 +30,6 @@ class ObjectDetector(IFrameAnalyzer):
         self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
         self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-
-        with open(path_to_labels) as f:
-            self.labels = f.readlines()
-        self.labels = [s.strip() for s in self.labels]
 
         self.classes_to_detect = classes_to_detect
         self.confidence_level = confidence_level

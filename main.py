@@ -3,8 +3,7 @@ import sys
 import time
 
 import cv2
-import imutils
-
+import tensorflow as tf
 import numpy as np
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -24,9 +23,6 @@ from datetime import datetime
 duration = 1000  # millisecond
 freq = 440  # Hz
 
-global secState
-secState = False
-
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
@@ -34,6 +30,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+CAMERAS_COUNT = 3
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -98,13 +95,9 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.image = None
         self.width_standard = 1200
         self.width360 = 1600
-        model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
-        model_path = model_name + '/frozen_inference_graph.pb'  # HERE
-        labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
-        self.object_detector = ObjectDetector(path_to_ckpt=model_path,
-                                              path_to_labels=labels_path,
-                                              classes_to_detect = CLASSES_TO_DETECT,
-                                              confidence_level = CONFIDENCE_LEVEL)
+
+        self.video_labels = [self.video_1, self.video_2, self.video_3]
+
         self.start_video()
         self.setWindowTitle('Security System')
         self.pushButton_1.clicked.connect(self.mark_up_1)
@@ -133,125 +126,124 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
 
     #@staticmethod
     def mark_up_1(self, event):
-        if not self.v1.border_detector.isPressMarkUpButton:
-            # self.v1.border_detector.isPressMarkUpButton = True
-            self.v1.border_detector.start_selecting_region(str(datetime.now()))
+        if not self.videotools[0].border_detector.isPressMarkUpButton:
+            # self.videotools[0].border_detector.isPressMarkUpButton = True
+            self.videotools[0].border_detector.start_selecting_region(str(datetime.now()))
             self.pushButton_1.setText('Деактивировать')
         else:
-            # self.v1.border_detector.isPressMarkUpButton = False
-            self.v1.border_detector.end_selecting_region()
+            # self.videotools[0].border_detector.isPressMarkUpButton = False
+            self.videotools[0].border_detector.end_selecting_region()
             self.pushButton_1.setText('Обозначить границы')
             # cv2.destroyAllWindows()
-        print('Button clicked ', self.v1.border_detector.isPressMarkUpButton)
+        print('Button clicked ', self.videotools[0].border_detector.isPressMarkUpButton)
 
     def mark_up_2(self, event):
-        if not self.v2.border_detector.isPressMarkUpButton:
-            # self.v2.border_detector.isPressMarkUpButton = True
-            self.v2.border_detector.start_selecting_region(str(datetime.now()))
+        if not self.videotools[1].border_detector.isPressMarkUpButton:
+            # self.videotools[1].border_detector.isPressMarkUpButton = True
+            self.videotools[1].border_detector.start_selecting_region(str(datetime.now()))
             self.pushButton_3.setText('Деактивировать')
         else:
-            # self.v2.border_detector.isPressMarkUpButton = False
-            self.v2.border_detector.end_selecting_region()
+            # self.videotools[1].border_detector.isPressMarkUpButton = False
+            self.videotools[1].border_detector.end_selecting_region()
             self.pushButton_3.setText('Обозначить границы')
             # cv2.destroyAllWindows()
-        print('Button clicked ', self.v2.border_detector.isPressMarkUpButton)
+        print('Button clicked ', self.videotools[1].border_detector.isPressMarkUpButton)
 
     def mark_up_3(self, event):
-        if not self.v3.border_detector.isPressMarkUpButton:
-            # self.v3.border_detector.isPressMarkUpButton = True
-            self.v3.border_detector.start_selecting_region(str(datetime.now()))
+        if not self.videotools[2].border_detector.isPressMarkUpButton:
+            # self.videotools[2].border_detector.isPressMarkUpButton = True
+            self.videotools[2].border_detector.start_selecting_region(str(datetime.now()))
             self.pushButton_5.setText('Деактивировать')
         else:
-            # self.v3.border_detector.isPressMarkUpButton = False
-            self.v3.border_detector.end_selecting_region()
+            # self.videotools[2].border_detector.isPressMarkUpButton = False
+            self.videotools[2].border_detector.end_selecting_region()
             self.pushButton_5.setText('Обозначить границы')
             # cv2.destroyAllWindows()
-        print('Button clicked ', self.v3.border_detector.isPressMarkUpButton)
+        print('Button clicked ', self.videotools[2].border_detector.isPressMarkUpButton)
 
     @staticmethod
     def mark_down():
-        self.v4.border_detector.isPressMarkUpButton = False
-        print('Button clicked ', self.v4.border_detector.isPressMarkUpButton)
+        self.videotools[3].border_detector.isPressMarkUpButton = False
+        print('Button clicked ', self.videotools[3].border_detector.isPressMarkUpButton)
         cv2.destroyAllWindows()
 
     def start_video(self):
-        vsrc1, vsrc2, vsrc3, vsrc4 = None, None, None, None
+        vsrcs = [None for i in range(CAMERAS_COUNT)]
         videosource = 'cameras'
         if len(sys.argv) > 1:
             videosource = sys.argv[1]
 
         if (videosource == 'files'):
-            vsrc1 = '../people.mp4'
-            vsrc2 = '../people.mp4'
-            vsrc3 = '../people.mp4'
-            vsrc4 = '../people.mp4'
+            vsrcs[0] = '../cat.mp4'
+            vsrcs[1] = '../cat.mp4'
+            vsrcs[2] = '../people.mp4'
+            # vsrcs[3] = '../people.mp4'
         else:
-            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
-            vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrc3 = 0# 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrc4 = 0
+            vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            # vsrcs[3] = 0
 
-        self.v1 = VideoTool(src=vsrc1, init_fc=0)
-        self.v1.object_detector=self.object_detector
-        self.v1.border_detector=BorderDetector()
-        self.v1.motion_detector=MotionDetector()
-        # self.v1.stop()
 
-        self.v2 = VideoTool(src=vsrc2, init_fc=1)
-        self.v2.object_detector=self.object_detector
-        self.v2.border_detector=BorderDetector()
-        self.v2.motion_detector=MotionDetector()
-        # self.v2.stop()
+        model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
+        model_path = model_name + '/frozen_inference_graph.pb'  # HERE
+        detection_graph = tf.Graph()
+        with detection_graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(model_path, 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(od_graph_def, name='')
 
-        self.v3 = VideoTool(src=vsrc3, init_fc=2)
-        self.v3.object_detector=self.object_detector
-        self.v3.border_detector=BorderDetector()
-        self.v3.motion_detector=MotionDetector()
-        # self.v3.stop()
+        labels = []
+        labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
+        with open(labels_path) as f:
+            labels = f.readlines()
+        labels = [s.strip() for s in labels]
 
-        # self.v4 = VideoTool(src=vsrc4, object_detector=self.object_detector,
-        #                 border_detector=BorderDetector())
-        # self.v4.stop()
-
+        self.videotools = [VideoTool(src=vsrcs[i], init_fc=i) for i in range(CAMERAS_COUNT)]
+        for i in range(CAMERAS_COUNT): 
+            print(i)
+            self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
+                                                     labels=labels,
+                                                     classes_to_detect=CLASSES_TO_DETECT,
+                                                     confidence_level=CONFIDENCE_LEVEL)
+            self.videotools[i].border_detector = BorderDetector()
+            self.videotools[i].motion_detector = MotionDetector()
+        
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
         self.timer.start(40)
 
     def update_video(self):
-        if self.v1.is_playing:
-            a = get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
-            self.video_1.setPixmap(a)
-        if self.v2.is_playing:
-            a = get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
-            self.video_2.setPixmap(a)
-        if self.v3.is_playing:
-            a = get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
-            self.video_3.setPixmap(a)
-        # if self.v4.is_playing:
-        #     self.v4.get_security_detected(self.width_standard)
+        for i in range(len(self.videotools)):
+            if self.videotools[i].is_displayable() and self.videotools[i].is_playing:
+                a = get_image_qt(self.videotools[i].get_smart_frame(self.width_standard), self.width_standard)
+                self.video_labels[i].setPixmap(a)
+        # if self.videotools[3].is_playing:
+        #     self.videotools[3].get_security_detected(self.width_standard)
 
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.object_detector.close()
-            self.v1.video.release()
-            self.v2.video.release()
-            self.v3.video.release()
-            # self.v4.video.release()
+            self.videotools[0].object_detector.close()
+            for i in range(len(self.videotools)):
+                self.videotools[i].close()
+            # self.videotools[3].video.release()
             event.accept()
         else:
             event.ignore()
 
     def video_one_change_mode(self, value):
-        self.change_mod_by_mod(value, self.v1)
+        self.change_mod_by_mod(value, self.videotools[0])
 
     def video_two_change_mode(self, value):
-        self.change_mod_by_mod(value, self.v2)
+        self.change_mod_by_mod(value, self.videotools[1])
 
     def video_three_change_mode(self, value):
-        self.change_mod_by_mod(value, self.v3)
+        self.change_mod_by_mod(value, self.videotools[2])
 
     @staticmethod
     def change_mod_by_mod(value, obj):
@@ -421,7 +413,7 @@ def main():
     splash = Splash()
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
-    window.object_detector.process(np.zeros((1, 1, 3)))
+    window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
 
     #window.setWindowOpacity(0.5)
     # pal = window.palette()

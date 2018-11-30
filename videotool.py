@@ -113,8 +113,17 @@ class VideoTool:
     def get_security_detected(self, width=500, img=None):
         pass  # TODO
 
+    def is_displayable(self):
+        return self.mode == cameramode.ORIGINAL or \
+               self.mode == cameramode.DETECT_OBJECTS or \
+               self.mode == cameramode.DETECT_MOTION or \
+               self.mode == cameramode.DETECT_BORDERS
+
     def play(self):
         self.is_playing = True
 
     def stop(self):
         self.is_playing = False
+
+    def close(self):
+        self.video.release()
