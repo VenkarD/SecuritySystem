@@ -15,6 +15,8 @@ from datetime import datetime
 
 #import design
 import SecuritySystemGUI
+import Settings
+
 import cameramode
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
@@ -63,34 +65,18 @@ class Splash(QSplashScreen):
         self.setPixmap(QPixmap("boot.jpg"))
         loaut = QVBoxLayout(self)
         loaut.addItem(QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Expanding))
-        #self.progress = QProgressBar(self)
-        #self.progress.setValue(0)
-        #self.progress.setMaximum(100)
-        #loaut.addWidget(self.progress)
-        #self.showMessage(u"Пример заставки", Qt.AlignTop)
-        #self.startTimer(1000)
-        #self.progress.setMaximum(0)
-    #def timerEvent(self, event):
-        #self.progress.setValue(self.progress.value() + 1)
-        #event.accept()
 
-class SecondWindow(QWidget):
-    def __init__(self, parent=None):
-        # Передаём ссылку на родительский элемент и чтобы виджет
-        # отображался как самостоятельное окно указываем тип окна
-        super().__init__(parent, Qt.Window)
+# Окно Настроек
+class SecWin(QWidget, Settings.Ui_Settings):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
         self.setWindowTitle('Settings')
-        self.build()
+        self.returnButton.clicked.connect(self.returnToMain)
 
-    def build(self):
-        self.mainLayout = QVBoxLayout()
+    def returnToMain(self, event):
+        self.destroy()
 
-        self.buttons = []
-        for i in range(5):
-            but = QPushButton('button {}'.format(i), self)
-            self.mainLayout.addWidget(but)
-            self.buttons.append(but)
-        self.setLayout(self.mainLayout)
 
 class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
     def __init__(self):
@@ -129,7 +115,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
     def setings_open(self, event):
         print("it's realy settingsButton")
         if not self.secondWin:
-            self.secondWin = SecondWindow(self)
+            self.secondWin = SecWin()
         self.secondWin.show()
 
 
@@ -189,8 +175,8 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
             vsrc3 = '../people.mp4'
             vsrc4 = '../people.mp4'
         else:
-            vsrc1 = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
-            vsrc2 = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrc1 = 0#'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream';
+            vsrc2 = 0#'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc3 = 0# 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
 
@@ -202,21 +188,21 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.v1.mode1 = self.v1.mode
         self.v2 = self.v1
         self.v3 = self.v1
-        self.v1.stop()
-        self.v2 = Video(src=vsrc2,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector(),
-                        init_fc=1)
-        #self.v2 = self.v1
-        self.v2.mode2 = self.v2.mode
-        # self.v2.stop()
-        self.v3 = Video(src=vsrc3,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector(),
-                        init_fc=2)
-        #self.v3 = self.v1
+        # self.v1.stop()
+        # self.v2 = Video(src=vsrc2,
+        #                 object_detector=self.object_detector,
+        #                 border_detector=BorderDetector(),
+        #                 motion_detector=MotionDetector(),
+        #                 init_fc=1)
+        # #self.v2 = self.v1
+        # self.v2.mode2 = self.v2.mode
+        # # self.v2.stop()
+        # self.v3 = Video(src=vsrc3,
+        #                 object_detector=self.object_detector,
+        #                 border_detector=BorderDetector(),
+        #                 motion_detector=MotionDetector(),
+        #                 init_fc=2)
+        # #self.v3 = self.v1
         self.v3.mode3 = self.v3.mode
         # # self.v3.stop()
         # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
@@ -440,9 +426,10 @@ def main():
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,
-    #              QBrush(QPixmap("Fone.jpg")))
+    #               QBrush(QPixmap("Fone.jpg")))
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
+    window.setWindowIcon(QIcon("icon.png"))
     window.show()  # Показываем окно
     splash.finish(window)
     app.exec_()  # и запускаем прило
