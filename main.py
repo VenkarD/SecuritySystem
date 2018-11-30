@@ -6,16 +6,15 @@ import cv2
 import imutils
 
 import numpy as np
-# import tensorflow as tf
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from imutils.video import VideoStream
 from datetime import datetime
 
 #import design
 import SecuritySystemGUI
 import cameramode
+from videotool import VideoTool
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
 from frame_analysis.motion_detector import MotionDetector
@@ -35,8 +34,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAM_FPS = 25  # позже получить программно для каждой камеры, пока что так
-PROCESS_PERIOD = 5  # период обновления информации детекторами
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -48,12 +45,12 @@ CLASSES_TO_DETECT = [
    # номер класса = номер строки, нумерация с 1
 
 
-def in_polygon(x, y, xp, yp):
-    c = 0
-    for i in range(len(xp)):
-        if (((yp[i] <= y and y < yp[i - 1]) or (yp[i - 1] <= y and y < yp[i])) and \
-                (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])): c = 1 - c
-    return c
+def get_image_qt(frame, width=600):
+    assert frame is not None, 'Кадр пуст'
+    rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
+    p = convert_to_qt_format.scaled(1400, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
+    return QPixmap.fromImage(p)
 
 # Иконка загрузки
 class Splash(QSplashScreen):
@@ -194,32 +191,25 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
             vsrc3 = 0# 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrc4 = 0
 
-        self.v1 = Video(src=vsrc1,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector(),
-                        init_fc=0)
-        self.v1.mode1 = self.v1.mode
-        self.v2 = self.v1
-        self.v3 = self.v1
-        self.v1.stop()
-        self.v2 = Video(src=vsrc2,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector(),
-                        init_fc=1)
-        #self.v2 = self.v1
-        self.v2.mode2 = self.v2.mode
+        self.v1 = VideoTool(src=vsrc1, init_fc=0)
+        self.v1.object_detector=self.object_detector
+        self.v1.border_detector=BorderDetector()
+        self.v1.motion_detector=MotionDetector()
+        # self.v1.stop()
+
+        self.v2 = VideoTool(src=vsrc2, init_fc=1)
+        self.v2.object_detector=self.object_detector
+        self.v2.border_detector=BorderDetector()
+        self.v2.motion_detector=MotionDetector()
         # self.v2.stop()
-        self.v3 = Video(src=vsrc3,
-                        object_detector=self.object_detector,
-                        border_detector=BorderDetector(),
-                        motion_detector=MotionDetector(),
-                        init_fc=2)
-        #self.v3 = self.v1
-        self.v3.mode3 = self.v3.mode
-        # # self.v3.stop()
-        # self.v4 = Video(src=vsrc4, object_detector=self.object_detector,
+
+        self.v3 = VideoTool(src=vsrc3, init_fc=2)
+        self.v3.object_detector=self.object_detector
+        self.v3.border_detector=BorderDetector()
+        self.v3.motion_detector=MotionDetector()
+        # self.v3.stop()
+
+        # self.v4 = VideoTool(src=vsrc4, object_detector=self.object_detector,
         #                 border_detector=BorderDetector())
         # self.v4.stop()
 
@@ -228,16 +218,16 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         self.timer.start(40)
 
     def update_video(self):
-        if self.v1.isPlay:
-            a = self.v1.get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
+        if self.v1.is_playing:
+            a = get_image_qt(self.v1.get_smart_frame(self.width_standard), self.width_standard)
             self.video_1.setPixmap(a)
-        if self.v2.isPlay:
-            a = self.v2.get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
+        if self.v2.is_playing:
+            a = get_image_qt(self.v2.get_smart_frame(self.width_standard), self.width_standard)
             self.video_2.setPixmap(a)
-        if self.v3.isPlay:
-            a = self.v3.get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
+        if self.v3.is_playing:
+            a = get_image_qt(self.v3.get_smart_frame(self.width_standard), self.width_standard)
             self.video_3.setPixmap(a)
-        # if self.v4.isPlay:
+        # if self.v4.is_playing:
         #     self.v4.get_security_detected(self.width_standard)
 
 
@@ -246,14 +236,10 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.object_detector.close()
-            self.v1.vc.release()
-            self.v1.vs.stop()
-            self.v2.vc.release()
-            self.v2.vs.stop()
-            self.v3.vc.release()
-            self.v3.vs.stop()
-            #self.v4.vc.release()
-            #self.v4.vs.stop()
+            self.v1.video.release()
+            self.v2.video.release()
+            self.v3.video.release()
+            # self.v4.video.release()
             event.accept()
         else:
             event.ignore()
@@ -289,7 +275,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_Form):
         print(value)
 
 
-class Video:
+"""class Video:
     def __init__(self, src=0, object_detector=None, border_detector=None,
                  motion_detector=None, color1=(0, 255, 0), color2=(0, 0, 255),
                  color3=(255, 0, 0), mode=cameramode.ORIGINAL, init_fc = 0):
@@ -343,7 +329,7 @@ class Video:
     def get_frame(self, width=500):
         frame = self.vs.read()
         if frame is None:
-            _, frame = self.vc.read()
+            _, frame = self.video.read()
         # frame = imutils.resize(frame, width=width)
         return frame
 
@@ -425,7 +411,7 @@ class Video:
         if state is None:
             return self.mode
         else:
-            self.mode = state
+            self.mode = state"""
 
 starttime = datetime.now()
 global lasttime
