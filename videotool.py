@@ -33,20 +33,7 @@ class VideoTool:
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
         self.frame_w = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.frame_h = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        # out = cv2.VideoWriter('output.avi', -1, 20.0, (self.frame_w, self.frame_h))
-        # while (cap.isOpened()):
-        #     ret, frame = cap.read()
-        #     if ret == True:
-        #         frame = cv2.flip(frame, 0)
-        #
-        #         # write the flipped frame
-        #         out.write(frame)
-        #
-        #         cv2.imshow('frame', frame)
-        #         if cv2.waitKey(1) & 0xFF == ord('q'):
-        #             break
-        #     else:
-        #         break
+
 
     def get_smart_frame(self, width, height):
         retval, original = self.video.read()
@@ -134,6 +121,19 @@ class VideoTool:
                self.mode == cameramode.DETECT_OBJECTS or \
                self.mode == cameramode.DETECT_MOTION or \
                self.mode == cameramode.DETECT_BORDERS
+
+    def video_rec(self):
+
+        cap = cv2.VideoCapture(0)
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                out.write(frame)
+
 
     def play(self):
         self.is_playing = True
