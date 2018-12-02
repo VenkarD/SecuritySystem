@@ -10,6 +10,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from datetime import datetime
 
+from threading import Thread
+
 #import design
 import SecuritySystemGUI
 import cameramode
@@ -31,7 +33,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 1
+CAMERAS_COUNT = 4
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -89,6 +91,45 @@ class SecondWindow(QWidget):
             self.buttons.append(but)
         self.setLayout(self.mainLayout)
 
+
+class VideoThread(QThread):
+    def __init__(self, name, videotool, videoview):
+        super().__init__()
+        self.name = name
+        self.videotool = videotool
+        self.videoview = videoview
+        self.is_playing = False
+        # self.timer = QTimer()
+    
+    def run(self):
+
+        """if self.timer.isActive():
+            self.timer.stop()
+
+        self.timer.moveToThread(self)
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(1000 / self.videotool.fps)
+        print(self.name + ' started')"""
+        self.tick()
+
+    def tick(self):
+        if self.videotool.is_displayable() and self.videotool.is_playing:
+            container = self.videoview.video_label_container
+            vtool = self.videotool
+
+            ratio_w = container.width() / vtool.frame_w
+            ratio_h = container.height() / vtool.frame_h
+            ratio = min(ratio_w, ratio_h)
+            frame = vtool.get_smart_frame(int(vtool.frame_w * ratio), 
+                                          int(vtool.frame_h * ratio))
+            frame = get_image_qt(frame)
+            # cv2.imwrite(self.videoview.caption + '_testimg.png', frame)
+            self.videoview.video_label.setPixmap(frame)
+
+    def start(self):
+        super().start()
+
+
 class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
@@ -106,20 +147,20 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
 
         if (videosource == 'files'):
             vsrcs[0] = '../cat.mp4'
-            # vsrcs[1] = '../cat.mp4'
-            # vsrcs[2] = '../people.mp4'
-            # vsrcs[3] = '../people.mp4'
+            vsrcs[1] = '../cat.mp4'
+            vsrcs[2] = '../people.mp4'
+            vsrcs[3] = '../people.mp4'
         else:
-            vsrcs[0] = 0# 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            # vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            # vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            # vsrcs[3] = 0
+            vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            vsrcs[3] = 0
 
-        vv_positions = [(1, 1, 1, 1)  # Позиции создаваемых VideoView в сетке
-                        # (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
-                        # (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
-                        # (2, 2, 1, 1)
-                        ]
+        vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
+                        (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
+                        (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
+                        (2, 2, 1, 1)
+                       ]
 
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = model_name + '/frozen_inference_graph.pb'  # HERE
@@ -139,6 +180,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
 
         self.videotools = [None] * CAMERAS_COUNT
         self.videoviews = [None] * CAMERAS_COUNT
+        self.threads = [None] * CAMERAS_COUNT
         for i in range(CAMERAS_COUNT):
             self.videotools[i] = VideoTool(src=vsrcs[i], init_fc=i)
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
@@ -164,14 +206,33 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
                     self.videoviews[i].borders_btn.setText('Деактивировать')
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
-                
 
-        self.start_video()
+            self.threads[i] = VideoThread('VideoThread' + str(i), self.videotools[i], self.videoviews[i])
+
         self.setWindowTitle('Security System')
         self.settings_btn.clicked.connect(self.setings_open)
         self.exit_btn.clicked.connect(self.close)
         self.secondWin = None
-        self.update_video()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.tick)
+        self.start_threads()
+        # self.update_video()
+
+    def start_threads(self):
+        """for i in range(CAMERAS_COUNT):
+            self.threads[i].start()"""
+        if self.timer.isActive():
+            self.timer.stop()
+        self.timer.start(1000 / 30)
+
+    def tick(self):
+        for i in range(CAMERAS_COUNT):
+            self.threads[i].start()
+
+    def stop_threads(self):
+        for i in range(CAMERAS_COUNT):
+            self.threads[i].timer.stop()
 
     def setings_open(self, event):
         print("it's realy settingsButton")
@@ -179,7 +240,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
             self.secondWin = SecondWindow(self)
         self.secondWin.show()
 
-    def start_video(self):
+    """def start_video(self):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video)
         self.timer.start(40)
@@ -197,7 +258,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
                                               int(vtool.frame_h * ratio))
                 frame = get_image_qt(frame)
                 # cv2.imwrite(self.videoviews[i].caption + '_testimg.png', frame)
-                self.videoviews[i].video_label.setPixmap(frame)
+                self.videoviews[i].video_label.setPixmap(frame)"""
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
