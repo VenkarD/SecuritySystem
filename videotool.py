@@ -130,7 +130,6 @@ class VideoTool:
     #         if ret:
     #             out.write(frame)
 
-
     def play(self):
         self.is_playing = True
 
