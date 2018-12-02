@@ -43,12 +43,14 @@ CLASSES_TO_DETECT = [
    # номер класса = номер строки, нумерация с 1
 
 
-def get_image_qt(frame, width=600):
-    assert frame is not None, 'Кадр пуст'
-    rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    convert_to_qt_format = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0], QImage.Format_RGB888)
-    p = convert_to_qt_format.scaled(1400, width*0.5, Qt.KeepAspectRatio)  # текущие координаты
-    return QPixmap.fromImage(p)
+def get_image_qt(frame):
+    # решает проблему с искажением кадров
+    height, width, channels = np.shape(frame)
+    totalBytes = frame.nbytes
+    bytesPerLine = int(totalBytes / height)
+
+    qimg = QImage(frame.data, frame.shape[1], frame.shape[0], bytesPerLine, QImage.Format_RGB888)
+    return QPixmap.fromImage(qimg)
 
 # Иконка загрузки
 class Splash(QSplashScreen):
@@ -170,11 +172,6 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
         self.secondWin = None
         self.update_video()
 
-    """def resizeEvent(self, event):
-        # super().__init__()  # ?
-        self.width_standard = self.comboBox_1.width()*5
-        self.width360 = self.comboBox_2.width()*5"""
-
     def setings_open(self, event):
         print("it's realy settingsButton")
         if not self.secondWin:
@@ -189,8 +186,16 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
     def update_video(self):
         for i in range(CAMERAS_COUNT):
             if self.videotools[i].is_displayable() and self.videotools[i].is_playing:
-                frame = self.videotools[i].get_smart_frame(self.width_standard)
-                frame = get_image_qt(frame, self.width_standard)
+                container = self.videoviews[i].video_label_container
+                vtool = self.videotools[i]
+
+                ratio_w = container.width() / vtool.frame_w
+                ratio_h = container.height() / vtool.frame_h
+                ratio = min(ratio_w, ratio_h)
+                frame = vtool.get_smart_frame(int(vtool.frame_w * ratio), 
+                                              int(vtool.frame_h * ratio))
+                frame = get_image_qt(frame)
+                # cv2.imwrite(self.videoviews[i].caption + '_testimg.png', frame)
                 self.videoviews[i].video_label.setPixmap(frame)
 
     def closeEvent(self, event):

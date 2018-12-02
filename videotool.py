@@ -31,14 +31,20 @@ class VideoTool:
     def set_video_source(self, src):
         self.video = cv2.VideoCapture(src)
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
+        self.frame_w = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.frame_h = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    def get_smart_frame(self, width=500):
-        frame = self.get_frame(width)
+    def get_smart_frame(self, width, height):
+        retval, original = self.video.read()
+        # TODO: обработать отсутствие кадра
+        assert original is not None, 'Кадр не получен'
 
+        frame = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
         # bad code
         if self.border_detector.isPressMarkUpButton:
             cv2.imshow(self.border_detector.windowId, self.border_detector.get_frame_polygon(frame))
 
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.frame_counter = (self.frame_counter + 1) % PROCESS_PERIOD
         if self.mode == cameramode.ORIGINAL or\
                 self.mode == cameramode.DETECT_BORDERS and \
@@ -61,12 +67,6 @@ class VideoTool:
             else:
                 self.last_gf_func = lambda frame: frame
         return self.last_gf_func(frame)
-
-
-    def get_frame(self, width=500):
-        frame = self.video.read()[1]
-        # frame = imutils.resize(frame, width=width)
-        return frame
 
     def get_frame_objects(self, frame, boxes, classes):
         for i in range(len(boxes)):
