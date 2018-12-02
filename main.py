@@ -137,6 +137,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
             labels = f.readlines()
         labels = [s.strip() for s in labels]
 
+
         self.videotools = [None] * CAMERAS_COUNT
         self.videoviews = [None] * CAMERAS_COUNT
         for i in range(CAMERAS_COUNT):
