@@ -43,7 +43,8 @@ class VideoView(QWidget):
         self.caption_label.setText(self.caption)
         self.main_vbox.addWidget(self.caption_label)
         self.video_label_container = QWidget(self)
-        self.video_label_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.video_label_container.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.video_label_container.setMinimumSize(30, 20)  # например
         self.video_label_container.setStyleSheet('background: black;')
         self.video_label_container_layout = QHBoxLayout(self.video_label_container)
         self.video_label_container_layout.setAlignment(Qt.AlignCenter)
