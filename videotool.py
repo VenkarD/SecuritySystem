@@ -26,11 +26,12 @@ class VideoTool:
         self.border_detector = None
         self.motion_detector = None
         self.is_playing = True
-        print('Start,', self.fps, 'FPS')
+        print('VideoTool created:', self.fps, 'FPS')
 
     def set_video_source(self, src):
         self.video = cv2.VideoCapture(src)
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
+        self.freq_ms = 1000 / self.fps
         self.frame_w = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.frame_h = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
