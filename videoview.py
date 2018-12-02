@@ -2,6 +2,26 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import cameramode
+
+class ToolbarButton(QPushButton):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: rgb(255, 255, 255);\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
+        sp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sp.setHorizontalStretch(1)
+        self.setSizePolicy(sp)
+
+
+class ToolbarComboBox(QComboBox):
+    def __init__(self, parent):
+        super().__init__(parent)
+        # self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: rgb(255, 255, 255);\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
+        sp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sp.setHorizontalStretch(2)
+        self.setSizePolicy(sp)
+
+
 class VideoView(QWidget):
     caption_font = QFont()
     caption_font.setFamily('Arial')
@@ -25,20 +45,28 @@ class VideoView(QWidget):
         # self.video_label.setStyleSheet('background-image: url(:/newPrefix/Black_bk.jpg);'')
         self.video_label.setStyleSheet('background: black;')
         self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self.video_label.setScaledContents(True)
         self.main_vbox.addWidget(self.video_label)
         self.toolbar_hbox_w = QWidget(self)
+        self.toolbar_hbox_w.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.toolbar_hbox_w.setFixedHeight(25)
+        # self.toolbar_hbox_w.setStyleSheet('background: red;')  # debug
         self.toolbar_hbox = QHBoxLayout(self.toolbar_hbox_w)
         self.toolbar_hbox.setSpacing(self.layout_spacing)
-        self.mode_cb = QComboBox(self)
-        self.mode_cb.addItem('Оригинальынй видеопоток')
-        self.mode_cb.addItem('Обнаружение объектов')
-        self.mode_cb.addItem('Обнаружение движения')
-        self.mode_cb.addItem('Обнаружение пересечения границ')
+        self.toolbar_hbox.setContentsMargins(0, 0, 0, 0)
+        self.mode_cb = ToolbarComboBox(self)
+        for i in range(4): self.mode_cb.addItem('NONAME')
+        self.mode_cb.setItemText(cameramode.ORIGINAL, 'Оригинальный видеопоток')
+        self.mode_cb.setItemText(cameramode.DETECT_OBJECTS, 'Обнаружение объектов')
+        self.mode_cb.setItemText(cameramode.DETECT_MOTION, 'Обнаружение движения')
+        self.mode_cb.setItemText(cameramode.DETECT_BORDERS, 'Обнаружение пересечения границ')
         self.toolbar_hbox.addWidget(self.mode_cb)
-        self.borders_btn = QPushButton(self)
+        self.borders_btn = ToolbarButton(self)
         self.borders_btn.setText('Обозначить границы')
         self.toolbar_hbox.addWidget(self.borders_btn)
-        self.videos_btn = QPushButton(self)
+        self.videos_btn = ToolbarButton(self)
         self.videos_btn.setText('Просмотр видео')
         self.toolbar_hbox.addWidget(self.videos_btn)
         self.main_vbox.addWidget(self.toolbar_hbox_w)
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)

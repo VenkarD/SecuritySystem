@@ -40,7 +40,9 @@ class VideoTool:
             cv2.imshow(self.border_detector.windowId, self.border_detector.get_frame_polygon(frame))
 
         self.frame_counter = (self.frame_counter + 1) % PROCESS_PERIOD
-        if self.mode == cameramode.ORIGINAL:
+        if self.mode == cameramode.ORIGINAL or\
+                self.mode == cameramode.DETECT_BORDERS and \
+                not self.border_detector.isPolyCreated:
             return frame
 
         if self.frame_counter == 0:
@@ -127,3 +129,6 @@ class VideoTool:
 
     def close(self):
         self.video.release()
+
+    def set_mode(self, mode):
+        self.mode = mode
