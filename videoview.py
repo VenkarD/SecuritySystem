@@ -7,7 +7,7 @@ import cameramode
 class ToolbarButton(QPushButton):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: #F0F8FD;\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
+        self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: #F0F8FD;\nbackground-image: url(:/everything/resources/buttonBK.jpg);')
         sp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sp.setHorizontalStretch(1)
         self.setSizePolicy(sp)
@@ -16,7 +16,7 @@ class ToolbarButton(QPushButton):
 class ToolbarComboBox(QComboBox):
     def __init__(self, parent):
         super().__init__(parent)
-        # self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: rgb(255, 255, 255);\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
+        # self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: rgb(255, 255, 255);\nbackground-image: url(:/everything/resources/buttonBK.jpg);')
         sp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sp.setHorizontalStretch(2)
         self.setSizePolicy(sp)
@@ -50,7 +50,7 @@ class VideoView(QWidget):
         self.video_label_container_layout.setAlignment(Qt.AlignCenter)
         self.video_label_container_layout.setContentsMargins(0, 0, 0, 0)
         self.video_label = QLabel(self.video_label_container)
-        # self.video_label.setStyleSheet('background-image: url(:/newPrefix/Black_bk.jpg);'')
+        # self.video_label.setStyleSheet('background-image: url(:/everything/resources/Black_bk.jpg);'')
         self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.video_label.setAlignment(Qt.AlignCenter)
         # self.video_label.setStyleSheet('background: red;')

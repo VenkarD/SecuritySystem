@@ -13,7 +13,10 @@ from datetime import datetime
 from threading import Thread
 
 #import design
-import SecuritySystemGUI
+import mainwindow
+import settings
+import log
+
 import cameramode
 from videotool import VideoTool
 from videoview import VideoView
@@ -73,6 +76,36 @@ class Splash(QSplashScreen):
         #self.progress.setValue(self.progress.value() + 1)
         #event.accept()
 
+
+
+# Окно Настроек
+class SettingsWindow(QWidget, settings.Ui_SettingsForm):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle('Settings')
+        self.returnButton.clicked.connect(self.returnToMain)
+        self.setWindowIcon(QIcon("icon_settings.png"))
+
+    def returnToMain(self, event):
+        self.close()
+        self.destroy()
+
+
+# Окно Log'a
+class LogWindow(QWidget, log.Ui_Log):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle('Log')
+        self.pushButton.clicked.connect(self.returnToMain)
+        self.setWindowIcon(QIcon("icon_log.png"))
+
+    def returnToMain(self, event):
+        self.close()
+        self.destroy()
+
+
 class SecondWindow(QWidget):
     def __init__(self, parent=None):
         # Передаём ссылку на родительский элемент и чтобы виджет
@@ -131,7 +164,7 @@ class VideoWorker(Thread):
         print('It\'s', self.getName(), 'goodbye!')
         self.is_playing = False
 
-class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
+class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
         # и т.д. в файле design.py
@@ -212,9 +245,11 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
             self.threads[i] = VideoWorker('VideoWorker' + str(i), self.videotools[i], self.videoviews[i])
 
         self.setWindowTitle('Security System')
-        self.settings_btn.clicked.connect(self.setings_open)
+        self.log_btn.clicked.connect(self.log_open)
+        self.settings_btn.clicked.connect(self.settings_open)
         self.exit_btn.clicked.connect(self.close)
-        self.secondWin = None
+        self.settings_window = None
+        self.log_window = None
 
     # Запускает обработку всех видеопотоков в отдельных потоках выполнения
     def start_threads(self):
@@ -226,14 +261,22 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
         for i in range(CAMERAS_COUNT):
             self.threads[i].stop_gracefully()
 
-    def setings_open(self, event):
-        print("it's realy settingsButton")
-        if not self.secondWin:
-            self.secondWin = SecondWindow(self)
-        self.secondWin.show()
+    def settings_open(self, event):
+        #print("it's realy settingsButton")
+        if not self.settings_window:
+            self.settings_window = SettingsWindow()
+        self.settings_window.show()
+
+    def log_open(self, event):
+        if not self.log_window:
+            self.log_window = LogWindow()
+        self.log_window.show()
+        with open("log.txt", 'r') as f:
+            mytext = f.read()
+            self.log_window.textEdit.setPlainText(mytext)
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
+        reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.videotools[0].object_detector.close()

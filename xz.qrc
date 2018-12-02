@@ -1,8 +1,10 @@
 <RCC>
-  <qresource prefix="newPrefix">
-    <file>bk.jpg</file>
-    <file>background.jpg</file>
-    <file>logo.png</file>
-    <file>buttonBK.jpg</file>
+  <qresource prefix="everything">
+    <file>resources/settings.jpg</file>
+    <file>resources/log.jpg</file>
+    <file>resources/background.jpg</file>
+    <file>resources/bk.jpg</file>
+    <file>resources/buttonBK.jpg</file>
+    <file>resources/logo.png</file>
   </qresource>
 </RCC>
