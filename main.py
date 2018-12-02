@@ -211,7 +211,6 @@ def main():
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
     window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
-
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,

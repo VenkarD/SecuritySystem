@@ -12,10 +12,21 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1002, 671)
-        MainWindow.setStyleSheet("")
+        MainWindow.setAutoFillBackground(False)
+        MainWindow.setStyleSheet(":root {\n"
+"    padding: 0px;\n"
+"    margin: 0px;\n"
+"}\n"
+"\n"
+"#centralwidget {\n"
+"    border-image: url(:/newPrefix/bk.jpg) 0 0 0 0 stretch stretch;\n"
+"    background: red;\n"
+"}")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.top_bar = QtWidgets.QWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -23,10 +34,11 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.top_bar.sizePolicy().hasHeightForWidth())
         self.top_bar.setSizePolicy(sizePolicy)
-        self.top_bar.setMinimumSize(QtCore.QSize(0, 50))
+        self.top_bar.setMinimumSize(QtCore.QSize(0, 66))
+        self.top_bar.setStyleSheet("background: #F0F8FD")
         self.top_bar.setObjectName("top_bar")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.top_bar)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setContentsMargins(8, 8, 8, 8)
         self.horizontalLayout.setSpacing(8)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.widget = QtWidgets.QWidget(self.top_bar)

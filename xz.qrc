@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="newPrefix">
+    <file>bk.jpg</file>
     <file>background.jpg</file>
     <file>logo.png</file>
     <file>buttonBK.jpg</file>

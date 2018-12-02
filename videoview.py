@@ -7,7 +7,7 @@ import cameramode
 class ToolbarButton(QPushButton):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: rgb(255, 255, 255);\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
+        self.setStyleSheet('font: 10pt "MS Shell Dlg 2";\ncolor: #F0F8FD;\nbackground-image: url(:/newPrefix/buttonBK.jpg);')
         sp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sp.setHorizontalStretch(1)
         self.setSizePolicy(sp)
@@ -23,9 +23,9 @@ class ToolbarComboBox(QComboBox):
 
 
 class VideoView(QWidget):
-    caption_font = QFont()
+    """caption_font = QFont()
     caption_font.setFamily('Arial')
-    caption_font.setPointSize(20)
+    caption_font.setPointSize(20)"""
     layout_spacing = 8
 
     def __init__(self, parent, **kwargs):
@@ -38,7 +38,8 @@ class VideoView(QWidget):
         self.main_vbox = QVBoxLayout(self)
         self.main_vbox.setSpacing(self.layout_spacing)
         self.caption_label = QLabel(self)
-        self.caption_label.setFont(self.caption_font)
+        # self.caption_label.setFont(self.caption_font)
+        self.caption_label.setStyleSheet('font-size: 16pt "MS Shell Dlg 2";\ncolor: #F0F8FD;')
         self.caption_label.setText(self.caption)
         self.main_vbox.addWidget(self.caption_label)
         self.video_label = QLabel(self)
