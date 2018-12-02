@@ -123,6 +123,7 @@ class VideoTool:
                self.mode == cameramode.DETECT_BORDERS
 
     def video_rec(self):
+        
         cap = cv2.VideoCapture(0)
 
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
