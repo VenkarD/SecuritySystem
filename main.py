@@ -33,7 +33,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 4
+CAMERAS_COUNT = 3
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -92,26 +92,22 @@ class SecondWindow(QWidget):
         self.setLayout(self.mainLayout)
 
 
-class VideoThread(QThread):
+class VideoWorker(Thread):
     def __init__(self, name, videotool, videoview):
-        super().__init__()
-        self.name = name
+        super().__init__(name=name)
         self.videotool = videotool
         self.videoview = videoview
         self.is_playing = False
-        # self.timer = QTimer()
     
     def run(self):
+        while self.is_playing:
+            time_start = datetime.now()
+            self.tick()
+            elapsed_ms = (datetime.now() - time_start).microseconds / 1000
+            print(elapsed_ms, 'ms elapsed')
+            time.sleep(max(0, self.videotool.freq_ms - elapsed_ms) / 1000)
 
-        """if self.timer.isActive():
-            self.timer.stop()
-
-        self.timer.moveToThread(self)
-        self.timer.timeout.connect(self.tick)
-        self.timer.start(1000 / self.videotool.fps)
-        print(self.name + ' started')"""
-        self.tick()
-
+    # Действия, которые выполняются над каждым кадром
     def tick(self):
         if self.videotool.is_displayable() and self.videotool.is_playing:
             container = self.videoview.video_label_container
@@ -127,8 +123,13 @@ class VideoThread(QThread):
             self.videoview.video_label.setPixmap(frame)
 
     def start(self):
+        print('Hello, I\'m', self.getName())
+        self.is_playing = True
         super().start()
 
+    def stop_gracefully(self):
+        print('It\'s', self.getName(), 'goodbye!')
+        self.is_playing = False
 
 class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
     def __init__(self):
@@ -178,6 +179,7 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
             labels = f.readlines()
         labels = [s.strip() for s in labels]
 
+        # Инициализация инструментария для каждого видеопотока
         self.videotools = [None] * CAMERAS_COUNT
         self.videoviews = [None] * CAMERAS_COUNT
         self.threads = [None] * CAMERAS_COUNT
@@ -207,32 +209,22 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
 
-            self.threads[i] = VideoThread('VideoThread' + str(i), self.videotools[i], self.videoviews[i])
+            self.threads[i] = VideoWorker('VideoWorker' + str(i), self.videotools[i], self.videoviews[i])
 
         self.setWindowTitle('Security System')
         self.settings_btn.clicked.connect(self.setings_open)
         self.exit_btn.clicked.connect(self.close)
         self.secondWin = None
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.tick)
-        self.start_threads()
-        # self.update_video()
-
+    # Запускает обработку всех видеопотоков в отдельных потоках выполнения
     def start_threads(self):
-        """for i in range(CAMERAS_COUNT):
-            self.threads[i].start()"""
-        if self.timer.isActive():
-            self.timer.stop()
-        self.timer.start(1000 / 30)
-
-    def tick(self):
         for i in range(CAMERAS_COUNT):
             self.threads[i].start()
 
+    # Сообщает всем отдельным потокам выполнения, что обработка больше не нужна
     def stop_threads(self):
         for i in range(CAMERAS_COUNT):
-            self.threads[i].timer.stop()
+            self.threads[i].stop_gracefully()
 
     def setings_open(self, event):
         print("it's realy settingsButton")
@@ -240,34 +232,14 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
             self.secondWin = SecondWindow(self)
         self.secondWin.show()
 
-    """def start_video(self):
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_video)
-        self.timer.start(40)
-
-    def update_video(self):
-        for i in range(CAMERAS_COUNT):
-            if self.videotools[i].is_displayable() and self.videotools[i].is_playing:
-                container = self.videoviews[i].video_label_container
-                vtool = self.videotools[i]
-
-                ratio_w = container.width() / vtool.frame_w
-                ratio_h = container.height() / vtool.frame_h
-                ratio = min(ratio_w, ratio_h)
-                frame = vtool.get_smart_frame(int(vtool.frame_w * ratio), 
-                                              int(vtool.frame_h * ratio))
-                frame = get_image_qt(frame)
-                # cv2.imwrite(self.videoviews[i].caption + '_testimg.png', frame)
-                self.videoviews[i].video_label.setPixmap(frame)"""
-
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.videotools[0].object_detector.close()
-            for i in range(len(self.videotools)):
+            for i in range(CAMERAS_COUNT):
+                self.threads[i].stop_gracefully()
                 self.videotools[i].close()
-            # self.videotools[3].video.release()
             event.accept()
         else:
             event.ignore()
@@ -285,6 +257,7 @@ def main():
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
     window.show()  # Показываем окно
+    window.start_threads()
     splash.finish(window)
     app.exec_()  # и запускаем прило
 
