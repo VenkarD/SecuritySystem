@@ -31,7 +31,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 3
+CAMERAS_COUNT = 1
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -57,7 +57,7 @@ class Splash(QSplashScreen):
     def __init__(self, *arg, **args):
         QSplashScreen.__init__(self, *arg, **args)
         self.setCursor(Qt.BusyCursor)
-        self.setPixmap(QPixmap("boot.jpg"))
+        self.setPixmap(QPixmap("resources/boot.jpg"))
         loaut = QVBoxLayout(self)
         loaut.addItem(QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Expanding))
         #self.progress = QProgressBar(self)
@@ -106,19 +106,20 @@ class UI(QMainWindow, SecuritySystemGUI.Ui_MainWindow):
 
         if (videosource == 'files'):
             vsrcs[0] = '../cat.mp4'
-            vsrcs[1] = '../cat.mp4'
-            vsrcs[2] = '../people.mp4'
-            vsrcs[3] = '../people.mp4'
+            # vsrcs[1] = '../cat.mp4'
+            # vsrcs[2] = '../people.mp4'
+            # vsrcs[3] = '../people.mp4'
         else:
-            vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[3] = 0
+            vsrcs[0] = 0# 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            # vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            # vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            # vsrcs[3] = 0
 
-        vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
-                        (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
-                        (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
-                        (2, 2, 1, 1)]  
+        vv_positions = [(1, 1, 1, 1)  # Позиции создаваемых VideoView в сетке
+                        # (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
+                        # (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
+                        # (2, 2, 1, 1)
+                        ]
 
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
         model_path = model_name + '/frozen_inference_graph.pb'  # HERE
@@ -219,7 +220,7 @@ def main():
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,
-    #              QBrush(QPixmap("Fone.jpg")))
+    #              QBrush(QPixmap("resources/Fone.jpg")))
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
     window.show()  # Показываем окно
