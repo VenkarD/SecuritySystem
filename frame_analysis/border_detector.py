@@ -8,6 +8,9 @@ from datetime import datetime
 def mouse_drawing(event, x, y, flags, detector):
     if event == cv2.EVENT_LBUTTONDOWN:
         detector.points.append((x, y))
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        if len(detector.points) > 0:
+            detector.points.pop()
     elif event == cv2.EVENT_MOUSEMOVE:
         detector.next_point = (x, y)
 

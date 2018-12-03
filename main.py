@@ -10,7 +10,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from datetime import datetime
 
-from threading import Thread
+from threading import Thread, Lock
 
 #import design
 import mainwindow
@@ -126,34 +126,49 @@ class SecondWindow(QWidget):
 
 
 class VideoWorker(Thread):
-    def __init__(self, name, videotool, videoview):
+    def __init__(self, name, videotool, videoview, mutex):
         super().__init__(name=name)
-        self.videotool = videotool
-        self.videoview = videoview
+        self.vtool = videotool
+        self.vview = videoview
         self.is_playing = False
+        self.mutex = mutex
     
     def run(self):
         while self.is_playing:
             time_start = datetime.now()
-            self.tick()
+            self.mutex.acquire()
+            if self.is_playing:
+                self.tick()
+            self.mutex.release()
             elapsed_ms = (datetime.now() - time_start).microseconds / 1000
             # print(elapsed_ms, 'ms elapsed')
-            time.sleep(max(0, self.videotool.freq_ms - elapsed_ms) / 1000)
+            time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
-        if self.videotool.is_displayable() and self.videotool.is_playing:
-            container = self.videoview.video_label_container
-            vtool = self.videotool
+        if self.vtool.is_displayable() and self.vtool.is_playing:
+            container = self.vview.video_label_container
 
-            ratio_w = container.width() / vtool.frame_w
-            ratio_h = container.height() / vtool.frame_h
+            ratio_w = container.width() / self.vtool.frame_w
+            ratio_h = container.height() / self.vtool.frame_h
             ratio = min(ratio_w, ratio_h)
-            frame = vtool.get_frame(int(vtool.frame_w * ratio), 
-                                    int(vtool.frame_h * ratio))
-            frame = get_image_qt(frame)
-            # cv2.imwrite(self.videoview.caption + '_testimg.png', frame)
-            self.videoview.video_label.setPixmap(frame)
+
+            if self.vtool.border_detector.is_drawing:
+                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                                             int(self.vtool.frame_h * ratio),
+                                             mode=cameramode.ORIGINAL,
+                                             bgr_to_rgb=False)
+                # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                cv2.imshow(self.vtool.border_detector.window_id,
+                           self.vtool.border_detector.draw_regions(frame))
+                """if cv2.waitKey(self.vtool.freq_ms) == ord('q'):  # ??? HOWTO?
+                    print('qq!')
+                    self.vview.borders_btn.click()"""
+            else:
+                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                                             int(self.vtool.frame_h * ratio))
+                frame = get_image_qt(frame)
+                self.vview.video_label.setPixmap(frame)
 
     def start(self):
         print('Hello, I\'m', self.getName())
@@ -216,6 +231,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.videotools = []
         self.videoviews = []
         self.threads = []
+        self.mutexes = []
         for i in range(CAMERAS_COUNT):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
@@ -235,6 +251,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             def borders_slot(event, i=i):
                 vtool = self.videotools[i]
                 vview = self.videoviews[i]
+
+                self.mutexes[i].acquire()
                 if vtool.border_detector.is_drawing:
                     vtool.border_detector.end_selecting_region()
                     vtool.is_borders_mode = vtool.border_detector.has_regions
@@ -247,12 +265,19 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                         vtool.is_borders_mode = False
                         vview.borders_btn.setText('Обозначить границы')
                     else:
-                        vtool.border_detector.start_selecting_region(str(datetime.now()))
+                        vview.video_label.pixmap().fill(QColor(0, 0, 0))
+                        vtool.border_detector.start_selecting_region(\
+                            str(datetime.now()))
                         vview.borders_btn.setText('Деактивировать')
+                self.mutexes[i].release()
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
 
-            self.threads.append(VideoWorker('VideoWorker' + str(i), self.videotools[i], self.videoviews[i]))
+            self.mutexes.append(Lock())
+            self.threads.append(VideoWorker('VideoWorker' + str(i),
+                                            self.videotools[i],
+                                            self.videoviews[i],
+                                            self.mutexes[i]))
 
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
@@ -289,10 +314,13 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.videotools[0].object_detector.close()
             for i in range(CAMERAS_COUNT):
+                self.mutexes[i].acquire()
                 self.threads[i].stop_gracefully()
                 self.videotools[i].close()
+                self.mutexes[i].release()
+            if len(self.videotools) > 0:
+                self.videotools[0].object_detector.close()
             event.accept()
         else:
             event.ignore()

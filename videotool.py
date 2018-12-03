@@ -32,34 +32,36 @@ class VideoTool:
     def set_video_source(self, src):
         self.video = cv2.VideoCapture(src)
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
-        self.freq_ms = 1000 / self.fps
+        self.freq_ms = int(1000 / self.fps)
         self.frame_w = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.frame_h = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
         # self.out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
 
 
-    def get_frame(self, width, height):
+    def get_frame(self, width, height, mode=None, bgr_to_rgb=True):
         retval, original = self.video.read()
         # TODO: обработать отсутствие кадра
         assert original is not None, 'Кадр не получен'
+        if mode is None:
+            mode = self.mode
 
         frame = cv2.resize(original, (width, height), interpolation=cv2.INTER_AREA)
         # bad code
-        if self.border_detector.is_drawing:
-            cv2.imshow(self.border_detector.window_id, self.border_detector.draw_regions(frame))
-
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        """if self.border_detector.is_drawing:
+            cv2.imshow(self.border_detector.window_id, self.border_detector.draw_regions(frame))"""
+        if bgr_to_rgb:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.frame_counter = (self.frame_counter + 1) % PROCESS_PERIOD
-        if self.mode == cameramode.ORIGINAL:
+        if mode == cameramode.ORIGINAL:
             return frame
 
         if self.frame_counter == 0:
-            if self.mode == cameramode.DETECT_OBJECTS:
+            if mode == cameramode.DETECT_OBJECTS:
                 boxes, scores, labels = self.object_detector.process(frame)
                 self.last_gf_func = lambda frame:  \
                     self.draw_retections(frame, boxes, labels)
-            elif self.mode == cameramode.DETECT_MOTION:
+            elif mode == cameramode.DETECT_MOTION:
                 boxes = self.motion_detector.process(frame)
                 self.last_gf_func = lambda frame: \
                     self.draw_retections(frame, boxes)
