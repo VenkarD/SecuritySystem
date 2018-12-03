@@ -42,8 +42,8 @@ CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности 
                         #       сеть уверена на 70% и выше
 CLASSES_TO_DETECT = [
     1,      # person
-    16,     # cat
-    17      # dog
+    17,     # cat
+    18      # dog
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
    # номер класса = номер строки, нумерация с 1
 
@@ -137,7 +137,7 @@ class VideoWorker(Thread):
             time_start = datetime.now()
             self.tick()
             elapsed_ms = (datetime.now() - time_start).microseconds / 1000
-            print(elapsed_ms, 'ms elapsed')
+            # print(elapsed_ms, 'ms elapsed')
             time.sleep(max(0, self.videotool.freq_ms - elapsed_ms) / 1000)
 
     # Действия, которые выполняются над каждым кадром
@@ -149,8 +149,8 @@ class VideoWorker(Thread):
             ratio_w = container.width() / vtool.frame_w
             ratio_h = container.height() / vtool.frame_h
             ratio = min(ratio_w, ratio_h)
-            frame = vtool.get_smart_frame(int(vtool.frame_w * ratio), 
-                                          int(vtool.frame_h * ratio))
+            frame = vtool.get_frame(int(vtool.frame_w * ratio), 
+                                    int(vtool.frame_h * ratio))
             frame = get_image_qt(frame)
             # cv2.imwrite(self.videoview.caption + '_testimg.png', frame)
             self.videoview.video_label.setPixmap(frame)
@@ -213,11 +213,11 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         labels = [s.strip() for s in labels]
 
         # Инициализация инструментария для каждого видеопотока
-        self.videotools = [None] * CAMERAS_COUNT
-        self.videoviews = [None] * CAMERAS_COUNT
-        self.threads = [None] * CAMERAS_COUNT
+        self.videotools = []
+        self.videoviews = []
+        self.threads = []
         for i in range(CAMERAS_COUNT):
-            self.videotools[i] = VideoTool(src=vsrcs[i], init_fc=i)
+            self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
                                                                 labels=labels,
                                                                 classes_to_detect=CLASSES_TO_DETECT,
@@ -225,7 +225,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.videotools[i].border_detector = BorderDetector()
             self.videotools[i].motion_detector = MotionDetector()
 
-            self.videoviews[i] = VideoView(self, caption='Камера №'+str(i+1))
+            self.videoviews.append(VideoView(self, caption='Камера №'+str(i+1)))
             row, col, w, h = vv_positions[i]
             self.main_grid.addWidget(self.videoviews[i], row, col, h, w)
 
@@ -233,16 +233,26 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 connect(self.videotools[i].set_mode)
 
             def borders_slot(event, i=i):
-                if self.videotools[i].border_detector.isPressMarkUpButton:
-                    self.videotools[i].border_detector.end_selecting_region()
-                    self.videoviews[i].borders_btn.setText('Обозначить границы')
+                vtool = self.videotools[i]
+                vview = self.videoviews[i]
+                if vtool.border_detector.is_drawing:
+                    vtool.border_detector.end_selecting_region()
+                    vtool.is_borders_mode = vtool.border_detector.has_regions
+                    vview.borders_btn.setText('Очистить границы'\
+                                              if vtool.is_borders_mode else\
+                                              'Обозначить границы')
                 else:
-                    self.videotools[i].border_detector.start_selecting_region(str(datetime.now()))
-                    self.videoviews[i].borders_btn.setText('Деактивировать')
+                    if vtool.is_borders_mode:
+                        vtool.border_detector.clear_points()
+                        vtool.is_borders_mode = False
+                        vview.borders_btn.setText('Обозначить границы')
+                    else:
+                        vtool.border_detector.start_selecting_region(str(datetime.now()))
+                        vview.borders_btn.setText('Деактивировать')
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
 
-            self.threads[i] = VideoWorker('VideoWorker' + str(i), self.videotools[i], self.videoviews[i])
+            self.threads.append(VideoWorker('VideoWorker' + str(i), self.videotools[i], self.videoviews[i]))
 
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
