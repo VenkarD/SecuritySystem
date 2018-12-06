@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+import traceback
 
 import cv2
 import tensorflow as tf
@@ -134,15 +135,23 @@ class VideoWorker(Thread):
         self.mutex = mutex
     
     def run(self):
-        while self.is_playing:
-            time_start = datetime.now()
-            self.mutex.acquire()
-            if self.is_playing:
-                self.tick()
-            self.mutex.release()
-            elapsed_ms = (datetime.now() - time_start).microseconds / 1000
-            # print(elapsed_ms, 'ms elapsed')
-            time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
+        try:
+            while self.is_playing:
+                # time_start = datetime.now()
+                self.mutex.acquire()
+                if self.is_playing:
+                    self.tick()
+                self.mutex.release()
+                # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
+                # print(elapsed_ms, 'ms elapsed')
+                # time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
+        except:
+            print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+            #e = sys.exc_info()[0]
+            #print e
+            self.stop_gracefully()
+            if self.mutex.locked():
+                self.mutex.release()
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
@@ -171,13 +180,19 @@ class VideoWorker(Thread):
                 self.vview.video_label.setPixmap(frame)
 
     def start(self):
-        print('Hello, I\'m', self.getName())
-        self.is_playing = True
-        super().start()
+        if not self.is_playing:
+            print('Hello, I\'m {}'.format(self.getName()))
+            self.is_playing = True
+            super().start()
+        else:
+            print('{} is already started'.format(self.getName()))
 
     def stop_gracefully(self):
-        print('It\'s', self.getName(), 'goodbye!')
-        self.is_playing = False
+        if self.is_playing:
+            print('It\'s {}, goodbye!'.format(self.getName()))
+            self.is_playing = False
+        else:
+            print('{} is already stopped'.format(self.getName()))
 
 class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self):
@@ -211,8 +226,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                         (2, 2, 1, 1)
                        ]
 
-        model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
-        model_path = model_name + '/frozen_inference_graph.pb'  # HERE
+        model_name = 'nn_model'  # faster_rcnn_inception_v2_coco_2018_01_28
+        model_path = model_name + '/frozen_inference_graph.pb'
         detection_graph = tf.Graph()
         with detection_graph.as_default():
             od_graph_def = tf.GraphDef()
