@@ -11,7 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from datetime import datetime
 
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 
 #import design
 import mainwindow
@@ -127,29 +127,27 @@ class SecondWindow(QWidget):
 
 
 class VideoWorker(Thread):
-    def __init__(self, name, videotool, videoview, mutex):
+    def __init__(self, name, videotool, videoview, mutex, stop_event):
         super().__init__(name=name)
         self.vtool = videotool
         self.vview = videoview
-        self.is_playing = False
         self.mutex = mutex
+        self.stop_event = stop_event
     
     def run(self):
         try:
-            while self.is_playing:
+            while not self.stop_event.wait(timeout=0.001):
                 # time_start = datetime.now()
                 self.mutex.acquire()
-                if self.is_playing:
+                if not self.stop_event.wait(timeout=0.001):
                     self.tick()
                 self.mutex.release()
                 # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
                 # print(elapsed_ms, 'ms elapsed')
                 # time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
+            print('It\'s {}, goodbye!'.format(self.getName()))
         except:
             print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
-            #e = sys.exc_info()[0]
-            #print e
-            self.stop_gracefully()
             if self.mutex.locked():
                 self.mutex.release()
 
@@ -180,19 +178,9 @@ class VideoWorker(Thread):
                 self.vview.video_label.setPixmap(frame)
 
     def start(self):
-        if not self.is_playing:
-            print('Hello, I\'m {}'.format(self.getName()))
-            self.is_playing = True
-            super().start()
-        else:
-            print('{} is already started'.format(self.getName()))
+        print('Hello, I\'m {}'.format(self.getName()))
+        super().start()
 
-    def stop_gracefully(self):
-        if self.is_playing:
-            print('It\'s {}, goodbye!'.format(self.getName()))
-            self.is_playing = False
-        else:
-            print('{} is already stopped'.format(self.getName()))
 
 class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self):
@@ -245,8 +233,9 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         # Инициализация инструментария для каждого видеопотока
         self.videotools = []
         self.videoviews = []
-        self.threads = []
+        # self.threads = []  # перенесено в start_threads
         self.mutexes = []
+        self.stop_threads_event = Event()
         for i in range(CAMERAS_COUNT):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
@@ -283,19 +272,15 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                         vview.video_label.pixmap().fill(QColor(0, 0, 0))
                         vtool.border_detector.start_selecting_region(\
                             str(datetime.now()))
-                        vview.borders_btn.setText('Деактивировать')
+                        vview.borders_btn.setText('Сохранить границы')
                 self.mutexes[i].release()
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
-
             self.mutexes.append(Lock())
-            self.threads.append(VideoWorker('VideoWorker' + str(i),
-                                            self.videotools[i],
-                                            self.videoviews[i],
-                                            self.mutexes[i]))
 
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
+        self.refresh_btn.clicked.connect(self.refresh_cameras)
         self.settings_btn.clicked.connect(self.settings_open)
         self.exit_btn.clicked.connect(self.close)
         self.settings_window = None
@@ -303,13 +288,28 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
 
     # Запускает обработку всех видеопотоков в отдельных потоках выполнения
     def start_threads(self):
+        self.threads = []
         for i in range(CAMERAS_COUNT):
+            self.threads.append(VideoWorker('VideoWorker' + str(i),
+                                            self.videotools[i],
+                                            self.videoviews[i],
+                                            self.mutexes[i],
+                                            self.stop_threads_event))
             self.threads[i].start()
 
     # Сообщает всем отдельным потокам выполнения, что обработка больше не нужна
     def stop_threads(self):
+        """for i in range(CAMERAS_COUNT):
+            self.threads[i].stop_gracefully()"""
+        self.stop_threads_event.set()
+
+
+    def stop_threads_and_wait(self):
+        self.stop_threads()
         for i in range(CAMERAS_COUNT):
-            self.threads[i].stop_gracefully()
+            self.threads[i].join()
+            print('Goodbye, {}!'.format(self.threads[i].getName()))
+        print('All side threads are stopped')
 
     def settings_open(self, event):
         #print("it's realy settingsButton")
@@ -325,15 +325,22 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             mytext = f.read()
             self.log_window.textEdit.setPlainText(mytext)
 
+    def refresh_cameras(self):
+        self.stop_threads_and_wait()
+        self.stop_threads_event.clear()
+        self.start_threads()
+
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.stop_threads_and_wait()
+            self.stop_threads_event.clear()
             for i in range(CAMERAS_COUNT):
-                self.mutexes[i].acquire()
-                self.threads[i].stop_gracefully()
+                # self.mutexes[i].acquire()
+                # self.threads[i].stop_gracefully()
                 self.videotools[i].close()
-                self.mutexes[i].release()
+                # self.mutexes[i].release()
             if len(self.videotools) > 0:
                 self.videotools[0].object_detector.close()
             event.accept()
