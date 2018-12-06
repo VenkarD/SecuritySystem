@@ -167,7 +167,9 @@ class VideoWorker(Thread):
                                              bgr_to_rgb=False)
                 # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.imshow(self.vtool.border_detector.window_id,
-                           self.vtool.border_detector.draw_regions(frame))
+                           self.vtool.border_detector.draw_regions(frame,
+                           self.vtool.color_borders,
+                           self.vtool.thickness_border))
                 """if cv2.waitKey(self.vtool.freq_ms) == ord('q'):  # ??? HOWTO?
                     print('qq!')
                     self.vview.borders_btn.click()"""

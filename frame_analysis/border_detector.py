@@ -33,7 +33,7 @@ class BorderDetector:
         self.has_regions = False
         self.window_id = None
 
-    def draw_regions(self, frame):
+    def draw_regions(self, frame, color, thickness):
         #regions_frame = np.copy(frame)
         np_points = None
         if self.is_drawing and self.next_point is not None:
@@ -47,7 +47,7 @@ class BorderDetector:
         """for center_position in self.points:
             cv2.circle(regions_frame, center_position, 2, (0, 0, 255), -1)"""
 
-        cv2.polylines(frame, np.int32([np_points]), True, (255, 255, 255), 3)
+        cv2.polylines(frame, np.int32([np_points]), True, color, thickness)
         """stencil = np.zeros(regions_frame.shape).astype(regions_frame.dtype)
         stencil[:] = (255, 255, 255) # далее белым по белому?
         if len(np_points) >= 3:
