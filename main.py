@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+import os
 
 import cv2
 import tensorflow as tf
@@ -14,7 +15,8 @@ from threading import Thread, Lock
 
 #import design
 import mainwindow
-import settings
+import Settings
+import Settings
 import log
 
 import cameramode
@@ -23,6 +25,7 @@ from videoview import VideoView
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
 from frame_analysis.motion_detector import MotionDetector
+from frame_analysis.security_detector import SecurityDetector
 
 from datetime import datetime
 
@@ -39,7 +42,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 3
+CAMERAS_COUNT = 1
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -50,6 +53,12 @@ CLASSES_TO_DETECT = [
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
    # номер класса = номер строки, нумерация с 1
 
+# global w
+# w = 0
+# global h
+# h = 0
+# global r
+# r = 0
 
 def get_image_qt(frame):
     # решает проблему с искажением кадров
@@ -68,27 +77,18 @@ class Splash(QSplashScreen):
         self.setPixmap(QPixmap("resources/boot.jpg"))
         loaut = QVBoxLayout(self)
         loaut.addItem(QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Expanding))
-        #self.progress = QProgressBar(self)
-        #self.progress.setValue(0)
-        #self.progress.setMaximum(100)
-        #loaut.addWidget(self.progress)
-        #self.showMessage(u"Пример заставки", Qt.AlignTop)
-        #self.startTimer(1000)
-        #self.progress.setMaximum(0)
-    #def timerEvent(self, event):
-        #self.progress.setValue(self.progress.value() + 1)
-        #event.accept()
 
 
 
 # Окно Настроек
-class SettingsWindow(QWidget, settings.Ui_SettingsForm):
+class SettingsWindow(QWidget, Settings.Ui_Form):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle('Settings')
         self.returnButton.clicked.connect(self.returnToMain)
-        self.setWindowIcon(QIcon("icon_settings.png"))
+        self.setWindowIcon(QIcon("resources/icon_settings.png"))
+        self.setFixedSize(935, 668)
 
     def returnToMain(self, event):
         self.close()
@@ -102,7 +102,7 @@ class LogWindow(QWidget, log.Ui_Log):
         self.setupUi(self)
         self.setWindowTitle('Log')
         self.pushButton.clicked.connect(self.returnToMain)
-        self.setWindowIcon(QIcon("icon_log.png"))
+        self.setWindowIcon(QIcon("resources/icon_log.png"))
 
     def returnToMain(self, event):
         self.close()
@@ -149,12 +149,21 @@ class VideoWorker(Thread):
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
+        global w
+        global h
+        global r
+
         if self.vtool.is_displayable() and self.vtool.is_playing:
+            #if self.vtool.security_detector is None:
             container = self.vview.video_label_container
 
             ratio_w = container.width() / self.vtool.frame_w
             ratio_h = container.height() / self.vtool.frame_h
             ratio = min(ratio_w, ratio_h)
+
+            # w = ratio_w
+            # h = ratio_h
+            # r = ratio
 
             if self.vtool.border_detector.is_drawing:
                 frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio),
@@ -172,6 +181,17 @@ class VideoWorker(Thread):
                                              int(self.vtool.frame_h * ratio))
                 frame = get_image_qt(frame)
                 self.vview.video_label.setPixmap(frame)
+
+            # else:
+            #     #print("Not empty")
+            #     frame = self.vtool.get_frame(int(w*r),
+            #                                  int(h*r),
+            #                                  mode=cameramode.ORIGINAL,
+            #                                  bgr_to_rgb=False)
+            #     #cv2.imshow("Frame", frame)
+            #     self.vtool.get_security_detected(frame)
+
+
 
     def start(self):
         print('Hello, I\'m', self.getName())
@@ -192,7 +212,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.width_standard = 1200
         self.width360 = 1600
 
-        vsrcs = [None] * 4
+        vsrcs = [None] * (CAMERAS_COUNT)
         videosource = 'cameras'
         if len(sys.argv) > 1:
             videosource = sys.argv[1]
@@ -203,15 +223,15 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             vsrcs[2] = '../people.mp4'
             vsrcs[3] = '../people.mp4'
         else:
-            vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[3] = 0
+            vsrcs[0] = 0#'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            #vsrcs[1] = 1#'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            #             # vsrcs[2] = 0#'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            #             # vsrcs[3] = 0
 
-        vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
-                        (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
-                        (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
-                        (2, 2, 1, 1)
+        vv_positions = [(1, 1, 1, 1)  # Позиции создаваемых VideoView в сетке
+                        #(1, 2, 1, 1)  # (строка, столбец, ширина, высота)
+                        # (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
+                        # (2, 2, 1, 1)
                        ]
 
         model_name = 'faster_rcnn_inception_v2_coco_2018_01_28'  # HERE - название папки с моделью
@@ -237,9 +257,10 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.mutexes = []
         for i in range(CAMERAS_COUNT):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
+            classes_to_detect = [1]
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
                                                                 labels=labels,
-                                                                classes_to_detect=CLASSES_TO_DETECT,
+                                                                classes_to_detect=classes_to_detect,
                                                                 confidence_level=CONFIDENCE_LEVEL)
             self.videotools[i].border_detector = BorderDetector()
             self.videotools[i].motion_detector = MotionDetector()
@@ -281,6 +302,19 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                                             self.videotools[i],
                                             self.videoviews[i],
                                             self.mutexes[i]))
+        # поток для детектирования охранника
+        # self.videotools.append(VideoTool(src=vsrcs[CAMERAS_COUNT], init_fc=CAMERAS_COUNT))
+        # self.videotools[CAMERAS_COUNT].object_detector = ObjectDetector(detection_graph=detection_graph,
+        #                                                         labels=labels,
+        #                                                         classes_to_detect=CLASSES_TO_DETECT,
+        #                                                         confidence_level=CONFIDENCE_LEVEL)
+        # self.videotools[CAMERAS_COUNT].security_detector = SecurityDetector(self.videotools[CAMERAS_COUNT].object_detector)
+        # self.mutexes.append(Lock())
+        # self.threads.append(VideoWorker('VideoWorker' + str(CAMERAS_COUNT),
+        #                                 self.videotools[CAMERAS_COUNT],
+        #                                 None,
+        #                                 self.mutexes[CAMERAS_COUNT]))
+
 
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
@@ -303,12 +337,18 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         #print("it's realy settingsButton")
         if not self.settings_window:
             self.settings_window = SettingsWindow()
+        # self.setWindowFlag(Qt.Window |
+        #                    Qt.WindowTitleHint)
+        #self.setWindowFlag(Qt.SubWindow)
         self.settings_window.show()
 
     def log_open(self, event):
         if not self.log_window:
             self.log_window = LogWindow()
         self.log_window.show()
+        if not os.path.exists("log.txt"):
+            with open("log.txt",'w') as file:
+                file.close()
         with open("log.txt", 'r') as f:
             mytext = f.read()
             self.log_window.textEdit.setPlainText(mytext)
@@ -333,13 +373,14 @@ def main():
     splash = Splash()
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
-    window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
+    #window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,
     #              QBrush(QPixmap("resources/Fone.jpg")))
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
+    window.setWindowIcon(QIcon("resources/icon.png"))
     window.show()  # Показываем окно
     window.start_threads()
     splash.finish(window)
