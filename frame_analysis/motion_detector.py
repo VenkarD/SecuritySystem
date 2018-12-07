@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from collections import deque
 
 from .i_frame_analyzer import IFrameAnalyzer
@@ -40,7 +41,12 @@ class MotionDetector(IFrameAnalyzer):
         curr_frame_gray = cv2.GaussianBlur(curr_frame_gray,
                                            (self.blur_w, self.blur_h), 0)
         self.delayed_gray.appendleft(curr_frame_gray)
-        if len(self.delayed_gray) < self.frames_delay:
+
+        # Проверки:
+        # не получено достаточно кадров для сравнения
+        # размеры сравниваемых кадров не совпадают
+        if len(self.delayed_gray) < self.frames_delay or \
+            np.shape(self.delayed_gray[self.frames_delay - 1]) != np.shape(curr_frame_gray):
             return []
 
         diff_frame = cv2.absdiff(self.delayed_gray[self.frames_delay - 1],

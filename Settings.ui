@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>SettingsForm</class>
+ <widget class="QWidget" name="SettingsForm">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,7 +14,7 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-image: url(:/newPrefix/Settings.jpg);</string>
+   <string notr="true">background-image: url(:/everything/resources/settings.jpg);</string>
   </property>
   <widget class="QPushButton" name="brightnessButton">
    <property name="geometry">
@@ -118,6 +118,9 @@
    </property>
    <property name="text">
     <string>RadioButton</string>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>

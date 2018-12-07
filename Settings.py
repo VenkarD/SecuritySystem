@@ -1,68 +1,67 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Settings.ui'
+# Form implementation generated from reading ui file 'settings.ui'
 #
-# Created by: PyQt5 UI code generator 5.6
+# Created by: PyQt5 UI code generator 5.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Settings(object):
-    def setupUi(self, Settings):
-        Settings.setObjectName("Form")
-        Settings.resize(937, 657)
-        #Settings.setStyleSheet("background-image: url(:/newPrefix/Settings.jpg);")
-
-        # Создаем фон настроек
-        oImage = QtGui.QImage("Settings.jpg")
-        palette = QtGui.QPalette()
-        palette.setBrush(10, QtGui.QBrush(oImage))
-        self.setPalette(palette)
-
-        self.brightnessButton = QtWidgets.QPushButton(Settings)
+class Ui_SettingsForm(object):
+    def setupUi(self, SettingsForm):
+        SettingsForm.setObjectName("SettingsForm")
+        SettingsForm.resize(937, 657)
+        SettingsForm.setStyleSheet("background-image: url(:/everything/resources/settings.jpg);")
+        self.brightnessButton = QtWidgets.QPushButton(SettingsForm)
         self.brightnessButton.setGeometry(QtCore.QRect(70, 160, 301, 91))
         self.brightnessButton.setObjectName("brightnessButton")
-        self.brightnessButton.setStyleSheet("background-color:transparent;border:0;")
-        self.sharpnessButton = QtWidgets.QPushButton(Settings)
+        self.sharpnessButton = QtWidgets.QPushButton(SettingsForm)
         self.sharpnessButton.setGeometry(QtCore.QRect(70, 270, 301, 91))
         self.sharpnessButton.setObjectName("sharpnessButton")
-        self.sharpnessButton.setStyleSheet("background-color:transparent;border:0;")
-        self.contrastButton = QtWidgets.QPushButton(Settings)
+        self.contrastButton = QtWidgets.QPushButton(SettingsForm)
         self.contrastButton.setGeometry(QtCore.QRect(70, 380, 301, 91))
         self.contrastButton.setObjectName("contrastButton")
-        self.contrastButton.setStyleSheet("background-color:transparent;border:0;")
-        self.colorButton = QtWidgets.QPushButton(Settings)
+        self.colorButton = QtWidgets.QPushButton(SettingsForm)
         self.colorButton.setGeometry(QtCore.QRect(70, 480, 301, 91))
         self.colorButton.setObjectName("colorButton")
-        self.colorButton.setStyleSheet("background-color:transparent;border:0;")
-        self.returnButton = QtWidgets.QPushButton(Settings)
+        self.returnButton = QtWidgets.QPushButton(SettingsForm)
         self.returnButton.setGeometry(QtCore.QRect(874, 10, 51, 51))
         self.returnButton.setObjectName("returnButton")
-        self.returnButton.setStyleSheet("background-color:transparent;border:0;")
-        self.radioButtonOn = QtWidgets.QRadioButton(Settings)
+        self.radioButtonOn = QtWidgets.QRadioButton(SettingsForm)
         self.radioButtonOn.setGeometry(QtCore.QRect(620, 290, 16, 21))
         self.radioButtonOn.setObjectName("radioButtonOn")
-        self.radioButtonAuto = QtWidgets.QRadioButton(Settings)
+        self.radioButtonAuto = QtWidgets.QRadioButton(SettingsForm)
         self.radioButtonAuto.setGeometry(QtCore.QRect(720, 290, 16, 21))
         self.radioButtonAuto.setObjectName("radioButtonAuto")
-        self.radioButtonOff = QtWidgets.QRadioButton(Settings)
+        self.radioButtonOff = QtWidgets.QRadioButton(SettingsForm)
         self.radioButtonOff.setGeometry(QtCore.QRect(830, 290, 16, 21))
+        self.radioButtonOff.setChecked(True)
         self.radioButtonOff.setObjectName("radioButtonOff")
 
-        self.retranslateUi(Settings)
-        QtCore.QMetaObject.connectSlotsByName(Settings)
+        self.retranslateUi(SettingsForm)
+        QtCore.QMetaObject.connectSlotsByName(SettingsForm)
 
-    def retranslateUi(self, Settings):
+    def retranslateUi(self, SettingsForm):
         _translate = QtCore.QCoreApplication.translate
-        Settings.setWindowTitle(_translate("Form", "Form"))
-        self.brightnessButton.setText(_translate("Form", ""))
-        self.sharpnessButton.setText(_translate("Form", ""))
-        self.contrastButton.setText(_translate("Form", ""))
-        self.colorButton.setText(_translate("Form", ""))
-        self.returnButton.setText(_translate("Form", ""))
-        self.radioButtonOn.setText(_translate("Form", ""))
-        self.radioButtonAuto.setText(_translate("Form", ""))
-        self.radioButtonOff.setText(_translate("Form", ""))
+        SettingsForm.setWindowTitle(_translate("SettingsForm", "Form"))
+        self.brightnessButton.setText(_translate("SettingsForm", "PushButton"))
+        self.sharpnessButton.setText(_translate("SettingsForm", "PushButton"))
+        self.contrastButton.setText(_translate("SettingsForm", "PushButton"))
+        self.colorButton.setText(_translate("SettingsForm", "PushButton"))
+        self.returnButton.setText(_translate("SettingsForm", "PushButton"))
+        self.radioButtonOn.setText(_translate("SettingsForm", "RadioButton"))
+        self.radioButtonAuto.setText(_translate("SettingsForm", "RadioButton"))
+        self.radioButtonOff.setText(_translate("SettingsForm", "RadioButton"))
 
 import xz_rc
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    SettingsForm = QtWidgets.QWidget()
+    ui = Ui_SettingsForm()
+    ui.setupUi(SettingsForm)
+    SettingsForm.show()
+    sys.exit(app.exec_())
+

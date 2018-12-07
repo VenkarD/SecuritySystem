@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Log</class>
+ <widget class="QWidget" name="Log">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,7 +14,7 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-image: url(:/newPrefix/Log.jpg);</string>
+   <string notr="true">background-image: url(:/everything/resources/log.jpg);</string>
   </property>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">

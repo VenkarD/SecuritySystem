@@ -7,58 +7,81 @@ from datetime import datetime
 # сделать staticmethod/classmethod?
 def mouse_drawing(event, x, y, flags, detector):
     if event == cv2.EVENT_LBUTTONDOWN:
-        print("Left click")
-        detector.circles.append((x, y))
-        print(len(detector.circles), 'circles')
+        detector.points.append((x, y))
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        if len(detector.points) > 0:
+            detector.points.pop()
     elif event == cv2.EVENT_MOUSEMOVE:
-        detector.next_circle = (x, y)
+        detector.next_point = (x, y)
+
+
+def in_region(x, y, xp, yp):
+    c = False
+    for i in range(len(xp)):
+        if (((yp[i] <= y and y < yp[i - 1]) or (yp[i - 1] <= y and y < yp[i])) and \
+                (x > (xp[i - 1] - xp[i]) * (y - yp[i]) / (yp[i - 1] - yp[i]) + xp[i])):
+            c = not c
+    return c
+
 
 class BorderDetector:
     def __init__(self):
-        # сделать circles изначально np.ndarray чтобы каждый раз не превращать в points?
-        self.circles = []
-        self.next_circle = None
-        self.isPressMarkUpButton = False
-        self.isPolyCreated = False
-        self.windowId = None
+        # сделать points изначально np.ndarray чтобы каждый раз не превращать в np_points?
+        self.points = []
+        self.next_point = None
+        self.is_drawing = False
+        self.has_regions = False
+        self.window_id = None
 
-    def get_frame_polygon(self, frame):
-        polygon_frame = np.copy(frame)
-        points = None
-        if self.isPressMarkUpButton and self.next_circle is not None:
-            if len(self.circles) > 0:
-                points = np.append(self.circles, [self.next_circle], axis=0)
+    def draw_regions(self, frame, color, thickness):
+        #regions_frame = np.copy(frame)
+        np_points = None
+        if self.is_drawing and self.next_point is not None:
+            if len(self.points) > 0:
+                np_points = np.append(self.points, [self.next_point], axis=0)
             else:
-                points = np.array([self.next_circle])
+                np_points = np.array([self.next_point])
         else:
-            points = np.array(self.circles)
+            np_points = np.array(self.points)
 
-        for center_position in self.circles:
-            cv2.circle(polygon_frame, center_position, 2, (0, 0, 255), -1)
+        """for center_position in self.points:
+            cv2.circle(regions_frame, center_position, 2, (0, 0, 255), -1)"""
 
-        cv2.polylines(polygon_frame, np.int32([points]), True, (255, 255, 255), 3)
-        stencil = np.zeros(polygon_frame.shape).astype(polygon_frame.dtype)
+        cv2.polylines(frame, np.int32([np_points]), True, color, thickness)
+        """stencil = np.zeros(regions_frame.shape).astype(regions_frame.dtype)
         stencil[:] = (255, 255, 255) # далее белым по белому?
-        if len(points) >= 3:
-            cv2.fillPoly(stencil, np.int32([points]), (255, 255, 255))
-            polygon_frame = cv2.bitwise_and(polygon_frame, stencil)
-        return polygon_frame
+        if len(np_points) >= 3:
+            cv2.fillPoly(stencil, np.int32([np_points]), (255, 255, 255))
+            regions_frame = cv2.bitwise_and(regions_frame, stencil)"""
+        return frame
 
-    def clearCircles(self):
-            self.circles = []
-            self.isPolyCreated = False
+    def are_rectangles_in_regions(self, rectangles):
+        np_points = np.array(self.points)
+        result = []
+        for i in range(len(rectangles)):
+            result.append(in_region((rectangles[i][1] + rectangles[i][3]) / 2,
+                                    (rectangles[i][0] + rectangles[i][2]) / 2,
+                                    np_points[:, 0],
+                                    np_points[:, 1]))
+        return result
 
-    def start_selecting_region(self, windowId):
-        self.isPressMarkUpButton = True
-        self.windowId = windowId
-        cv2.namedWindow(self.windowId)
-        cv2.setMouseCallback(self.windowId, mouse_drawing, param=self)
+
+
+    def clear_points(self):
+            self.points = []
+            self.has_regions = False
+
+    def start_selecting_region(self, window_id):
+        self.is_drawing = True
+        self.window_id = window_id
+        cv2.namedWindow(self.window_id)
+        cv2.setMouseCallback(self.window_id, mouse_drawing, param=self)
 
     def end_selecting_region(self):
-        self.next_circle = None
-        self.isPressMarkUpButton = False
-        self.isPolyCreated = len(self.circles) >= 3
-        if not self.isPolyCreated:
-            self.clearCircles()
-        cv2.destroyWindow(self.windowId)
-        self.windowId = None
+        self.next_point = None
+        self.is_drawing = False
+        self.has_regions = len(self.points) >= 3
+        if not self.has_regions:
+            self.clear_points()
+        cv2.destroyWindow(self.window_id)
+        self.window_id = None
