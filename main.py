@@ -2,6 +2,7 @@ import logging
 import sys
 import time
 import traceback
+import gc
 
 import cv2
 import tensorflow as tf
@@ -37,7 +38,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 1
+CAMERAS_COUNT = 3
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -133,13 +134,27 @@ class VideoWorker(Thread):
         self.vview = videoview
         self.mutex = mutex
         self.stop_event = stop_event
-    
+
+        self.emergency_stop = False
+        self.last_frame = None
+        self.reader = Thread(target=self.read_stream, args=[stop_event])
+
+    def read_stream(self, stop_event):
+        print('{}: let\'s read the stream!'.format(self.getName()))
+        try:
+            while not stop_event.is_set() and not self.emergency_stop:
+                ret, self.last_frame = self.vtool.video.read()
+        except:
+            print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+        print('{}: done!'.format(self.getName()))
+
     def run(self):
+        self.reader.start()
         try:
             while not self.stop_event.is_set():
                 # time_start = datetime.now()
                 self.mutex.acquire()
-                if not self.stop_event.is_set():
+                if not self.stop_event.is_set() and self.last_frame is not None:
                     self.tick()
                 self.mutex.release()
                 # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
@@ -148,8 +163,10 @@ class VideoWorker(Thread):
             print('It\'s {}, goodbye!'.format(self.getName()))
         except:
             print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+            self.emergency_stop = True
             if self.mutex.locked():
                 self.mutex.release()
+        self.reader.join()
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
@@ -161,7 +178,8 @@ class VideoWorker(Thread):
             ratio = min(ratio_w, ratio_h)
 
             if self.vtool.border_detector.is_drawing:
-                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                frame = self.vtool.get_frame(self.last_frame,
+                                             int(self.vtool.frame_w * ratio),
                                              int(self.vtool.frame_h * ratio),
                                              mode=cameramode.ORIGINAL,
                                              bgr_to_rgb=False)
@@ -174,13 +192,15 @@ class VideoWorker(Thread):
                     print('qq!')
                     self.vview.borders_btn.click()"""
             else:
-                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                frame = self.vtool.get_frame(self.last_frame,
+                                             int(self.vtool.frame_w * ratio),
                                              int(self.vtool.frame_h * ratio))
                 frame = get_image_qt(frame)
                 self.vview.video_label.setPixmap(frame)
 
     def start(self):
         print('Hello, I\'m {}'.format(self.getName()))
+        self.emergency_stop = False
         super().start()
 
 
@@ -242,6 +262,7 @@ class SecurityDetectorWorker(Thread):
                     strftime('%d.%m.%y %H:%M'),\
                     'на месте' if self.security_curr_state else 'отсутствует')
 
+        print('Log:', log_str)
         if(log_str != ''):
             with open('log.txt', 'a') as f:
                 f.write(log_str + '\r\n')
@@ -361,6 +382,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
         self.refresh_btn.clicked.connect(self.refresh_cameras)
+        self.refresh_btn.clicked.connect(self.refresh_security_cam)
         self.settings_btn.clicked.connect(self.settings_open)
         self.exit_btn.clicked.connect(self.close)
         self.settings_window = None
@@ -381,7 +403,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.security_thread = SecurityDetectorWorker(name='SecurityDetector',
                                                       video_capture=self.security_capture,
                                                       object_detector=self.security_detector,
-                                                      checking_period_sec=30,
+                                                      checking_period_sec=10,
                                                       checking_burst=5,
                                                       mutex=self.security_mutex,
                                                       stop_event=self.stop_security_event)
