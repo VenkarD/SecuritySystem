@@ -202,9 +202,10 @@ class SecurityDetectorWorker(Thread):
         try:
             self.tick()
             while not self.stop_event.is_set():
-                for i in range(self.checking_period_sec):
-                    print(i)
-                    if self.stop_event.wait(timeout=1):
+                waiting_start_time = datetime.now()
+                while (datetime.now() - waiting_start_time).seconds < self.checking_period_sec:
+                    self.video_capture.read()
+                    if self.stop_event.is_set():
                         break;
                 # time_start = datetime.now()
                 self.mutex.acquire()
@@ -229,7 +230,7 @@ class SecurityDetectorWorker(Thread):
         for i in range(self.checking_burst):
             if self.stop_event.is_set():
                 return
-                
+
             frame = self.video_capture.read()[1]
             boxes, scores, classes = self.object_detector.process(frame)
             if len(boxes) > 0:
