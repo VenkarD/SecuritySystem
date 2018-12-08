@@ -44,15 +44,15 @@ class BorderDetector:
         else:
             np_points = np.array(self.points)
 
-        """for center_position in self.points:
-            cv2.circle(regions_frame, center_position, 2, (0, 0, 255), -1)"""
+        # for center_position in self.points:
+        #     cv2.circle(regions_frame, center_position, 2, (0, 0, 255), -1)
 
         cv2.polylines(frame, np.int32([np_points]), True, (255, 255, 255), 3)
-        """stencil = np.zeros(regions_frame.shape).astype(regions_frame.dtype)
-        stencil[:] = (255, 255, 255) # далее белым по белому?
-        if len(np_points) >= 3:
-            cv2.fillPoly(stencil, np.int32([np_points]), (255, 255, 255))
-            regions_frame = cv2.bitwise_and(regions_frame, stencil)"""
+        # stencil = np.zeros(frame.shape).astype(frame.dtype)
+        # stencil[:] = (255, 255, 255) # далее белым по белому?
+        # if len(np_points) >= 3:
+        #     cv2.fillPoly(stencil, np.int32([np_points]), (255, 255, 255))
+        #     frame = cv2.bitwise_and(frame, stencil)
         return frame
 
     def are_rectangles_in_regions(self, rectangles):

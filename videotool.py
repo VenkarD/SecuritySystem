@@ -25,6 +25,7 @@ class VideoTool:
         self.object_detector = None
         self.motion_detector = None
         self.border_detector = None
+        self.security_detector = None
         self.is_playing = True
         self.is_borders_mode = False
         print('VideoTool created:', self.fps, 'FPS')
@@ -65,6 +66,9 @@ class VideoTool:
                 boxes = self.motion_detector.process(frame)
                 self.last_gf_func = lambda frame: \
                     self.draw_retections(frame, boxes)
+            elif mode == cameramode.DETECT_SECURITY:
+                self.last_gf_func = lambda frame: \
+                    self.get_security_detected(frame)
             else:
                 self.last_gf_func = lambda frame: frame
         return self.last_gf_func(frame)
@@ -85,8 +89,10 @@ class VideoTool:
             self.draw_rectangle(frame, boxes[i], colors[i], labels[i])
         return frame
 
-    def get_security_detected(self, width=500, img=None):
-        pass  # TODO
+    def get_security_detected(self, frame):
+        #pass
+        self.security_detector.get_security_detected(frame)
+        #print ("get_security_detected is working")
 
     def is_displayable(self):
         return self.mode == cameramode.ORIGINAL or \

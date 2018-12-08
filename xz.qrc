@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="everything">
+    <file>Settings.jpg</file>
     <file>resources/settings.jpg</file>
     <file>resources/log.jpg</file>
     <file>resources/background.jpg</file>

@@ -271,6 +271,7 @@ class Ui_Form(object):
 "border-radius: 15px;")
         self.ThickBorderpushButton_4.setObjectName("ThickBorderpushButton_4")
 
+
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 

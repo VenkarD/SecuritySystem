@@ -13,10 +13,8 @@ from datetime import datetime
 
 from threading import Thread, Lock
 
-#import design
 import mainwindow
-import Settings
-import Settings
+import settings
 import log
 
 import cameramode
@@ -81,7 +79,7 @@ class Splash(QSplashScreen):
 
 
 # Окно Настроек
-class SettingsWindow(QWidget, Settings.Ui_Form):
+class SettingsWindow(QWidget, settings.Ui_Form):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -149,9 +147,6 @@ class VideoWorker(Thread):
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
-        global w
-        global h
-        global r
 
         if self.vtool.is_displayable() and self.vtool.is_playing:
             #if self.vtool.security_detector is None:
