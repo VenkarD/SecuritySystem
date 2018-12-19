@@ -60,7 +60,7 @@ class VideoTool:
             return frame
 
         if self.frame_counter == 0:
-            if mode == cameramode.DETECT_OBJECTS:
+            if mode == cameramode.DETECT_OBJECTS or mode == cameramode.DETECT_VEHICLES:
                 boxes, scores, labels = self.object_detector.process(frame)
                 self.last_gf_func = lambda frame:  \
                     self.draw_detections(frame, boxes, labels)
@@ -78,7 +78,7 @@ class VideoTool:
             labels = [None] * count
 
         colors = []
-        if self.mode == cameramode.DETECT_OBJECTS:
+        if self.mode == cameramode.DETECT_OBJECTS or self.mode == cameramode.DETECT_VEHICLES:
             for i in range(count):
                 if labels[i] == self.object_detector.labels[1 - 1]:  # если человек
                     colors.append(self.color_people)
@@ -104,7 +104,8 @@ class VideoTool:
     def is_displayable(self):
         return self.mode == cameramode.ORIGINAL or \
                self.mode == cameramode.DETECT_OBJECTS or \
-               self.mode == cameramode.DETECT_MOTION
+               self.mode == cameramode.DETECT_MOTION or \
+               self.mode == cameramode.DETECT_VEHICLES
 
     # def video_rec(self):
     #     while cap.isOpened():

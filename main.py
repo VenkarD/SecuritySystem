@@ -41,10 +41,17 @@ CAMERAS_COUNT = 3
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
-CLASSES_TO_DETECT = [
+CLASSES_TO_DETECT_MANCATDOG = [
     1,      # person
     17,     # cat
     18      # dog
+]
+CLASSES_TO_DETECT_VEHICLES = [
+    2,      #bicycle
+    3,      #car
+    4,      #motorcycle
+    6,      #bus
+    8,      #truck
 ]  # HERE - классы для обнаружения, см. файл classes_en.txt
    # номер класса = номер строки, нумерация с 1
 
@@ -242,7 +249,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
                                                                 labels=labels,
-                                                                classes_to_detect=CLASSES_TO_DETECT,
+                                                                classes_to_detect=CLASSES_TO_DETECT_MANCATDOG,
                                                                 confidence_level=CONFIDENCE_LEVEL)
             self.videotools[i].border_detector = BorderDetector()
             self.videotools[i].motion_detector = MotionDetector()
@@ -251,8 +258,15 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             row, col, w, h = vv_positions[i]
             self.main_grid.addWidget(self.videoviews[i], row, col, h, w)
 
+            def on_mode_cb_changed(index, i=i):
+                if index == cameramode.DETECT_OBJECTS:
+                    self.videotools[i].object_detector.classes_to_detect = CLASSES_TO_DETECT_MANCATDOG
+                elif index == cameramode.DETECT_VEHICLES:
+                    self.videotools[i].object_detector.classes_to_detect = CLASSES_TO_DETECT_VEHICLES
+                self.videotools[i].set_mode(index)
+
             self.videoviews[i].mode_cb.currentIndexChanged.\
-                connect(self.videotools[i].set_mode)
+                connect(on_mode_cb_changed)
 
             def borders_slot(event, i=i):
                 vtool = self.videotools[i]
@@ -304,7 +318,6 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         """for i in range(CAMERAS_COUNT):
             self.threads[i].stop_gracefully()"""
         self.stop_threads_event.set()
-
 
     def stop_threads_and_wait(self):
         self.stop_threads()
