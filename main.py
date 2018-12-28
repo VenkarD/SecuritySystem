@@ -24,6 +24,7 @@ from videoview import VideoView
 from frame_analysis.object_detector import ObjectDetector
 from frame_analysis.border_detector import BorderDetector
 from frame_analysis.motion_detector import MotionDetector
+from frame_analysis.face_recognizer import FaceRecognizer
 
 from datetime import datetime
 
@@ -37,7 +38,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 3
+CAMERAS_COUNT = 1
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -207,7 +208,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             videosource = sys.argv[1]
 
         if (videosource == 'files'):
-            vsrcs[0] = '../cat.mp4'
+            vsrcs[0] = '../people.mp4'
             vsrcs[1] = '../cat.mp4'
             vsrcs[2] = '../people.mp4'
             vsrcs[3] = '../people.mp4'
@@ -239,6 +240,30 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             labels = f.readlines()
         labels = [s.strip() for s in labels]
 
+        # Фотографии и имена для распознавания лиц
+        # TODO: работать через БД
+        faces_folder = 'faces'
+        known_face_photos = [
+            'Bogdan.jpg', 
+            'Bogdan_1.jpg',
+            'Egor_2.jpg',
+            'Tima.jpg',
+            'Tima_1.jpg',
+            'Tima_2.jpg',
+            'biden.jpg'
+        ]
+        known_face_encodings = [FaceRecognizer.get_face_encoding(cv2.imread(
+                                faces_folder + '/' + face)) 
+                                for face in known_face_photos]
+        known_face_names = [
+            "Bogdan",
+            "Bogdan",
+            "Egor",
+            "Tima",
+            "Tima",
+            "Tima"
+        ]
+
         # Инициализация инструментария для каждого видеопотока
         self.videotools = []
         self.videoviews = []
@@ -253,6 +278,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                                                                 confidence_level=CONFIDENCE_LEVEL)
             self.videotools[i].border_detector = BorderDetector()
             self.videotools[i].motion_detector = MotionDetector()
+            self.videotools[i].face_recognizer = FaceRecognizer(known_face_encodings, known_face_names)
 
             self.videoviews.append(VideoView(self, caption='Камера №'+str(i+1)))
             row, col, w, h = vv_positions[i]

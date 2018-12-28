@@ -1,5 +1,11 @@
+saved_videos/
+nn_model/
+faces/
+.idea/
+opencv/
 log.txt
 *.csv
+
 
 ### https://github.com/github/gitignore/blob/master/Python.gitignore
 ### Python

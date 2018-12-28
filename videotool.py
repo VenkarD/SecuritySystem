@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 import cameramode
+from frame_analysis.face_recognizer import FaceRecognizer
 
 PROCESS_PERIOD = 1  # период обновления информации детекторами
 
@@ -19,7 +20,8 @@ class VideoTool:
         self.color_people = (104, 176, 77)
         self.color_objects = (0, 255, 100)
         self.color_motion = (225, 252, 49)
-        self.color_borders = (227, 28, 33)
+        self.color_good = (28, 227, 33)
+        self.color_bad = (227, 28, 33)
         self.thickness_rectangle = 3
         self.thickness_border = 3
         self.frame_counter = init_fc
@@ -28,6 +30,7 @@ class VideoTool:
         self.object_detector = None
         self.motion_detector = None
         self.border_detector = None
+        self.face_recognizer = None
         self.is_playing = True
         self.is_borders_mode = False
         print('VideoTool created:', self.fps, 'FPS')
@@ -68,6 +71,10 @@ class VideoTool:
                 boxes = self.motion_detector.process(frame)
                 self.last_gf_func = lambda frame: \
                     self.draw_detections(frame, boxes)
+            elif mode == cameramode.RECOGNIZE_FACES:
+                boxes, labels = self.face_recognizer.process(frame)
+                self.last_gf_func = lambda frame: \
+                    self.draw_detections(frame, boxes, labels)
             else:
                 self.last_gf_func = lambda frame: frame
         return self.last_gf_func(frame)
@@ -80,19 +87,28 @@ class VideoTool:
         colors = []
         if self.mode == cameramode.DETECT_OBJECTS or self.mode == cameramode.DETECT_VEHICLES:
             for i in range(count):
-                if labels[i] == self.object_detector.labels[1 - 1]:  # если человек
+                if labels[i] == self.object_detector.labels[1 - 1]:  # если человек (1-1 означает <id_класса> - 1,
+                                                                     # т.к. они нумеруются с единицы. Надо бы
+                                                                     # завести именованное перечисление)
                     colors.append(self.color_people)
                 else:
                     colors.append(self.color_objects)
+        elif self.mode == cameramode.RECOGNIZE_FACES:
+            for i in range(count):
+                if labels[i] == FaceRecognizer.unknown_face_name:  # если лицо не опознано
+                    colors.append(self.color_bad)
+                else:
+                    colors.append(self.color_good)
         elif self.mode == cameramode.DETECT_MOTION:
             colors = [self.color_motion] * count
 
+        # TODO: менять ли цвет, если одновременно активен режим распознавания лиц (свой-чужой) и отмечены границы
         if self.is_borders_mode:
-            frame = self.border_detector.draw_regions(frame, self.color_borders, self.thickness_border)
+            frame = self.border_detector.draw_regions(frame, self.color_bad, self.thickness_border)
             are_rects_in_regs = self.border_detector.are_rectangles_in_regions(list(boxes))
             for i in range(count):
                 if are_rects_in_regs[i]:
-                    colors[i] = self.color_borders
+                    colors[i] = self.color_bad
 
         for i in range(count):
             self.draw_rectangle(frame, boxes[i], colors[i], self.thickness_rectangle, labels[i])
@@ -105,7 +121,8 @@ class VideoTool:
         return self.mode == cameramode.ORIGINAL or \
                self.mode == cameramode.DETECT_OBJECTS or \
                self.mode == cameramode.DETECT_MOTION or \
-               self.mode == cameramode.DETECT_VEHICLES
+               self.mode == cameramode.DETECT_VEHICLES or \
+               self.mode == cameramode.RECOGNIZE_FACES
 
     # def video_rec(self):
     #     while cap.isOpened():
