@@ -282,7 +282,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
 
             self.videoviews.append(VideoView(self, caption='Камера №'+str(i+1)))
             row, col, w, h = vv_positions[i]
-            self.main_grid.addWidget(self.videoviews[i], row, col, h, w)
+            self.cameras_layout.addWidget(self.videoviews[i], row, col, h, w)
 
             def on_mode_cb_changed(index, i=i):
                 if index == cameramode.DETECT_OBJECTS:
@@ -323,7 +323,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.setWindowTitle('Security System')
         self.log_btn.clicked.connect(self.log_open)
         self.refresh_btn.clicked.connect(self.refresh_cameras)
-        self.settings_btn.clicked.connect(self.settings_open)
+        self.cameras_btn.clicked.connect(self.show_cameras_page)
+        self.settings_btn.clicked.connect(self.show_settings_page)
         self.exit_btn.clicked.connect(self.close)
         self.settings_window = None
         self.log_window = None
@@ -352,11 +353,15 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             print('Goodbye, {}!'.format(self.threads[i].getName()))
         print('All side threads are stopped')
 
-    def settings_open(self, event):
+    def show_cameras_page(self, event):
+        self.stacked_widget.setCurrentWidget(self.cameras_page)
+
+    def show_settings_page(self, event):
         #print("it's realy settingsButton")
-        if not self.settings_window:
+        """if not self.settings_window:
             self.settings_window = SettingsWindow()
-        self.settings_window.show()
+        self.settings_window.show()"""
+        self.stacked_widget.setCurrentWidget(self.settings_page)
 
     def log_open(self, event):
         if not self.log_window:
