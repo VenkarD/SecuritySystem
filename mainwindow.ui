@@ -175,6 +175,9 @@ color: rgb(255, 255, 255);</string>
        </item>
        <item>
         <widget class="QPushButton" name="log_btn">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -300,7 +303,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
           <property name="styleSheet">
            <string notr="true">background: white;</string>
           </property>
-          <widget class="QWidget" name="detect_objects_module_settings" native="true">
+          <widget class="QWidget" name="detect_objects_module_settings">
            <layout class="QGridLayout" name="gridLayout_2">
             <item row="1" column="0">
              <widget class="QCheckBox" name="checkBox">
@@ -436,7 +439,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
             </widget>
            </item>
            <item>
-            <widget class="QTreeWidget" name="treeWidget">
+            <widget class="QTreeWidget" name="cameras_treeview">
              <attribute name="headerVisible">
               <bool>false</bool>
              </attribute>
@@ -450,7 +453,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
            <item>
             <layout class="QHBoxLayout" name="cameras_panel_buttons_layout">
              <item>
-              <widget class="QLabel" name="add_zone_btn">
+              <widget class="QImageButton" name="add_zone_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -471,6 +474,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="cursor">
                 <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Добавить зону</string>
                </property>
                <property name="text">
                 <string>1</string>
@@ -481,7 +487,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="add_camera_btn">
+              <widget class="QImageButton" name="add_camera_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -502,6 +508,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="cursor">
                 <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Добавить камеру</string>
                </property>
                <property name="text">
                 <string>2</string>
@@ -512,7 +521,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="rename_zone_camera_btn">
+              <widget class="QImageButton" name="rename_zone_camera_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -533,6 +542,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="cursor">
                 <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Переименовать</string>
                </property>
                <property name="text">
                 <string>3</string>
@@ -543,7 +555,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="remove_zone_camera_btn">
+              <widget class="QImageButton" name="remove_zone_camera_btn">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -564,6 +576,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="cursor">
                 <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Удалить</string>
                </property>
                <property name="text">
                 <string>4</string>
@@ -603,35 +618,6 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
-            <widget class="QLabel" name="label_7">
-             <property name="text">
-              <string>Название</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="lineEdit_2"/>
-           </item>
-           <item>
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeType">
-              <enum>QSizePolicy::Fixed</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>10</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
             <widget class="QLabel" name="label_6">
              <property name="text">
               <string>Доступ к камере</string>
@@ -639,10 +625,13 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
              </property>
+             <property name="buddy">
+              <cstring>camera_access_tb</cstring>
+             </property>
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEdit"/>
+            <widget class="QLineEdit" name="camera_access_tb"/>
            </item>
            <item>
             <spacer name="verticalSpacer_2">
@@ -680,6 +669,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
+               <property name="buddy">
+                <cstring>camera_pos_col_spinbox</cstring>
+               </property>
               </widget>
              </item>
              <item row="1" column="0">
@@ -690,10 +682,13 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
+               <property name="buddy">
+                <cstring>camera_pos_row_spinbox</cstring>
+               </property>
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QSpinBox" name="spinBox">
+              <widget class="QSpinBox" name="camera_pos_row_spinbox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -719,6 +714,9 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
+               <property name="buddy">
+                <cstring>camera_pos_row_span_spinbox</cstring>
+               </property>
               </widget>
              </item>
              <item row="4" column="0">
@@ -729,10 +727,13 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
+               <property name="buddy">
+                <cstring>camera_pos_col_span_spinbox</cstring>
+               </property>
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QSpinBox" name="spinBox_2">
+              <widget class="QSpinBox" name="camera_pos_col_spinbox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -751,7 +752,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QSpinBox" name="spinBox_3">
+              <widget class="QSpinBox" name="camera_pos_row_span_spinbox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -770,7 +771,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QSpinBox" name="spinBox_4">
+              <widget class="QSpinBox" name="camera_pos_col_span_spinbox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -817,7 +818,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
             </widget>
            </item>
            <item>
-            <widget class="QListWidget" name="listWidget"/>
+            <widget class="QListWidget" name="modules_listview"/>
            </item>
           </layout>
          </widget>
@@ -829,6 +830,13 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QImageButton</class>
+   <extends>QLabel</extends>
+   <header>custom_widgets/QImageButton</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="xz.qrc"/>
  </resources>

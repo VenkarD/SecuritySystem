@@ -17,6 +17,7 @@ from threading import Thread, Lock, Event
 import mainwindow
 import settings
 import log
+from custom_widgets.QImageButton import QImageButton
 
 import cameramode
 from videotool import VideoTool
@@ -292,7 +293,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 self.videotools[i].set_mode(index)
 
             self.videoviews[i].mode_cb.currentIndexChanged.\
-                connect(on_mode_cb_changed)
+                    connect(on_mode_cb_changed)
 
             def borders_slot(event, i=i):
                 vtool = self.videotools[i]
@@ -321,13 +322,30 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.mutexes.append(Lock())
 
         self.setWindowTitle('Security System')
-        self.log_btn.clicked.connect(self.log_open)
-        self.refresh_btn.clicked.connect(self.refresh_cameras)
-        self.cameras_btn.clicked.connect(self.show_cameras_page)
-        self.settings_btn.clicked.connect(self.show_settings_page)
-        self.exit_btn.clicked.connect(self.close)
         self.settings_window = None
         self.log_window = None
+        self.prepare_settings_form()
+        self.setup_handlers()
+
+    def prepare_settings_form(self):
+        # TODO: назначить соответствующие иконки
+        add_img = cv2.imread('resources/add.png')
+        self.add_zone_btn.setImage(add_img)
+        self.add_camera_btn.setImage(add_img)
+        self.rename_zone_camera_btn.setImage(add_img)
+        self.remove_zone_camera_btn.setImage(add_img)
+
+    def setup_handlers(self):
+        self.cameras_btn.clicked.connect(self.show_cameras_page)
+        self.refresh_btn.clicked.connect(self.refresh_cameras)
+        self.settings_btn.clicked.connect(self.show_settings_page)
+        self.log_btn.clicked.connect(self.log_open)
+        self.exit_btn.clicked.connect(self.close)
+
+        # TODO: таг, если тут закомментировано, то откуда прога знает что делать по клику?
+        # self.add_zone_btn.clicked.connect(self.on_add_zone_btn_clicked)
+        # self.add_camera_btn.clicked.connect(self.on_add_camera_btn_clicked)
+        # self.rename_zone_camera_btn.clicked.connect(self.on_rename_zone_camera_btn_clicked)
 
     # Запускает обработку всех видеопотоков в отдельных потоках выполнения
     def start_threads(self):
@@ -376,10 +394,45 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.stop_threads_event.clear()
         self.start_threads()
 
+    def on_add_zone_btn_clicked(self, event):
+        name, dialog_result = QInputDialog.getText(self, 'Добавление зоны',
+                                            'Введите название зоны:')
+        if dialog_result and len(name) > 0:
+            QTreeWidgetItem(self.cameras_treeview, [name])
+
+    def on_add_camera_btn_clicked(self, event):
+        selected = self.cameras_treeview.selectedItems()[0]
+        name, dialog_result = QInputDialog.getText(self, 'Добавление камеры',
+                                            'Введите название камеры:')
+        if dialog_result and len(name) > 0:
+            if selected.parent():
+                parent = selected.parent()
+            else:
+                parent = selected
+            QTreeWidgetItem(parent, [name])
+
+    def on_rename_zone_camera_btn_clicked(self, event):
+        selected = self.cameras_treeview.selectedItems()[0]
+        renaming_of_what = 'камеры' if selected.parent() else 'зоны'
+        name, dialog_result = QInputDialog.getText(self, 'Переименование {}'.format(renaming_of_what),
+                                            'Введите название {}:'.format(renaming_of_what))
+        if dialog_result and len(name) > 0:
+            selected.setText(0, name)
+
+    def on_remove_zone_camera_btn_clicked(self, event):
+        selected = self.cameras_treeview.selectedItems()[0]
+        removing_of_what = 'камеру' if selected.parent() else 'зону'
+        dialog_result = QMessageBox.question(self, 'Подтвердите действие',
+                                     'Вы действительно хотите удалить {} из списка?'.format(removing_of_what),
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if dialog_result == QMessageBox.Yes:
+            (selected.parent() or self.cameras_treeview.invisibleRootItem()).removeChild(selected)
+
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Message', "Вы действительно хотите закрыть охранную систему?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+        dialog_result = QMessageBox.question(self, 'Подтвердите действие',
+                                     'Вы действительно хотите закрыть охранную систему?',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if dialog_result == QMessageBox.Yes:
             self.stop_threads_and_wait()
             self.stop_threads_event.clear()
             for i in range(CAMERAS_COUNT):
