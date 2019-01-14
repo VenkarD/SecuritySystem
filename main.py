@@ -67,6 +67,13 @@ def get_image_qt(frame):
     qimg = QImage(frame.data, frame.shape[1], frame.shape[0], bytesPerLine, QImage.Format_RGB888)
     return QPixmap.fromImage(qimg)
 
+
+class ModuleSettingsKit:
+    def __init__(self, name, widget_page):
+        self.name = name
+        self.widget_page = widget_page
+
+
 # Иконка загрузки
 class Splash(QSplashScreen):
     def __init__(self, *arg, **args):
@@ -85,7 +92,6 @@ class Splash(QSplashScreen):
     #def timerEvent(self, event):
         #self.progress.setValue(self.progress.value() + 1)
         #event.accept()
-
 
 
 # Окно Настроек
@@ -271,6 +277,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         # self.threads = []  # перенесено в start_threads
         self.mutexes = []
         self.stop_threads_event = Event()
+        # TODO: перенести создание объектов в потоки
         for i in range(CAMERAS_COUNT):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
@@ -334,6 +341,17 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.add_camera_btn.setImage(add_img)
         self.rename_zone_camera_btn.setImage(add_img)
         self.remove_zone_camera_btn.setImage(add_img)
+
+        self.module_kits = [ModuleSettingsKit('Объекты', self.detect_objects_settings_page),
+                            ModuleSettingsKit('Движение', self.detect_motion_settings_page),
+                            ModuleSettingsKit('Лица', self.recognize_faces_settings_page),
+                            ModuleSettingsKit('Номерные знаки', self.recognize_license_plates_settings_page),
+                            ModuleSettingsKit('Границы', self.detect_borders_settings_page)]
+        for kit in self.module_kits:
+            item = QListWidgetItem(kit.name)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked)
+            self.modules_listview.addItem(item)
 
     def setup_handlers(self):
         self.cameras_btn.clicked.connect(self.show_cameras_page)
@@ -409,7 +427,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 parent = selected.parent()
             else:
                 parent = selected
-            QTreeWidgetItem(parent, [name])
+            item = QTreeWidgetItem(parent, [name])
+            item.setFlags(item.flags() | Qt.ItemNeverHasChildren)
 
     def on_rename_zone_camera_btn_clicked(self, event):
         selected = self.cameras_treeview.selectedItems()[0]
@@ -427,6 +446,9 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if dialog_result == QMessageBox.Yes:
             (selected.parent() or self.cameras_treeview.invisibleRootItem()).removeChild(selected)
+
+    def on_modules_listview_currentRowChanged(self, current_row):
+        self.module_settings_panel.setCurrentWidget(self.module_kits[current_row].widget_page)
 
     def closeEvent(self, event):
         dialog_result = QMessageBox.question(self, 'Подтвердите действие',

@@ -303,58 +303,32 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
           <property name="styleSheet">
            <string notr="true">background: white;</string>
           </property>
-          <widget class="QWidget" name="detect_objects_module_settings">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="detect_objects_settings_page">
            <layout class="QGridLayout" name="gridLayout_2">
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="checkBox">
+            <item row="0" column="0" colspan="4">
+             <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>Люди</string>
+               <string>Описание модуля обнаружения объектов</string>
               </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QCheckBox" name="checkBox_2">
-              <property name="text">
-               <string>Коты и собаки</string>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QCheckBox" name="checkBox_7">
-              <property name="text">
-               <string>Грузовики</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QCheckBox" name="checkBox_3">
-              <property name="text">
-               <string>Велосипеды</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QCheckBox" name="checkBox_6">
-              <property name="text">
-               <string>Автобусы</string>
+              <property name="wordWrap">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QCheckBox" name="checkBox_5">
+             <widget class="QCheckBox" name="detect_objects_cars_chb">
               <property name="text">
                <string>Легковые автомобили</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
-             <widget class="QCheckBox" name="checkBox_4">
-              <property name="text">
-               <string>Мотоциклы</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2" rowspan="4">
+            <item row="1" column="3" rowspan="4">
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <item>
                <widget class="QLabel" name="label_11">
@@ -373,7 +347,10 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </widget>
               </item>
               <item>
-               <widget class="QSlider" name="horizontalSlider">
+               <widget class="QSlider" name="detect_objects_confidence_level_slider">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
                 <property name="maximum">
                  <number>100</number>
                 </property>
@@ -387,16 +364,325 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </item>
              </layout>
             </item>
-            <item row="0" column="0" colspan="3">
-             <widget class="QLabel" name="label_10">
+            <item row="4" column="0">
+             <widget class="QCheckBox" name="detect_objects_motorcycles_chb">
               <property name="text">
-               <string>Описание модуля обнаружения объектов</string>
+               <string>Мотоциклы</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QCheckBox" name="detect_objects_trucks_chb">
+              <property name="text">
+               <string>Грузовики</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QCheckBox" name="detect_objects_bicycles_chb">
+              <property name="text">
+               <string>Велосипеды</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QCheckBox" name="detect_objects_buses_chb">
+              <property name="text">
+               <string>Автобусы</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="detect_objects_people_chb">
+              <property name="text">
+               <string>Люди</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QCheckBox" name="detect_objects_cats_dogs_chb">
+              <property name="text">
+               <string>Коты и собаки</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2" rowspan="4">
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Preferred</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="detect_motion_settings_page">
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="1" column="5" rowspan="4">
+             <layout class="QVBoxLayout" name="verticalLayout_4">
+              <item>
+               <widget class="QLabel" name="label_17">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Порог реагирования</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="detect_motion_confidence_level_slider">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>100</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="tickPosition">
+                 <enum>QSlider::TicksBelow</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_16">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Минимальная площадь:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QSpinBox" name="detect_motion_blur_y_spinbox"/>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_15">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Размер деталей:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1" colspan="3">
+             <widget class="QSpinBox" name="detect_motion_min_area_spinbox"/>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_12">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Номер кадра для сравнения:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_13">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Размытие границ:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="6">
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>Описание модуля обнаружения движения</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
-              <property name="wordWrap">
-               <bool>true</bool>
+             </widget>
+            </item>
+            <item row="1" column="1" colspan="3">
+             <widget class="QSpinBox" name="detect_motion_frame_delay_spinbox">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QSpinBox" name="detect_motion_blur_x_spinbox"/>
+            </item>
+            <item row="2" column="2">
+             <widget class="QLabel" name="label_14">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>x</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" colspan="3">
+             <widget class="QSpinBox" name="detect_motion_dilate_spinbox"/>
+            </item>
+            <item row="1" column="4" rowspan="4">
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Preferred</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="recognize_faces_settings_page">
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="1" column="0">
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <widget class="QLabel" name="label_19">
+                <property name="text">
+                 <string>Уровень достоверности</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="recognize_faces_confidence_level_slider">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>100</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="tickPosition">
+                 <enum>QSlider::TicksBelow</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_18">
+              <property name="text">
+               <string>Описание модуля распознавания лиц</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="recognize_license_plates_settings_page">
+           <layout class="QGridLayout" name="gridLayout_5">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_21">
+              <property name="text">
+               <string>Описание модуля распознавания номерных знаков</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <layout class="QVBoxLayout" name="verticalLayout_6">
+              <item>
+               <widget class="QLabel" name="label_22">
+                <property name="text">
+                 <string>Уровень достоверности</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSlider" name="recognize_license_plates_confidence_level_slider">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>100</number>
+                </property>
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="tickPosition">
+                 <enum>QSlider::TicksBelow</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="detect_borders_settings_page">
+           <layout class="QGridLayout" name="gridLayout_6">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_20">
+              <property name="text">
+               <string>Описание модуля контроля границ</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
              </widget>
             </item>
@@ -594,7 +880,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
          </widget>
         </item>
         <item row="0" column="2" rowspan="2">
-         <widget class="QFrame" name="modules_panel">
+         <widget class="QFrame" name="camera_settings_panel">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -818,7 +1104,14 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
             </widget>
            </item>
            <item>
-            <widget class="QListWidget" name="modules_listview"/>
+            <widget class="QListWidget" name="modules_listview">
+             <property name="styleSheet">
+              <string notr="true"/>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
