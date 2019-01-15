@@ -23,7 +23,7 @@ import cameramode
 from videotool import VideoTool
 from videoview import VideoView
 from frame_analysis.object_detector import ObjectDetector
-from frame_analysis.border_detector import BorderDetector
+from frame_analysis.border_detector import BorderDetector, Region
 from frame_analysis.motion_detector import MotionDetector
 from frame_analysis.face_recognizer import FaceRecognizer
 
@@ -153,10 +153,12 @@ class VideoWorker(Thread):
         try:
             while not self.stop_event.wait(timeout=0.001):
                 # time_start = datetime.now()
+                print('accuired2')
                 self.mutex.acquire()
                 if not self.stop_event.wait(timeout=0.001):
                     self.tick()
                 self.mutex.release()
+                print('released2')
                 # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
                 # print(elapsed_ms, 'ms elapsed')
                 # time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
@@ -171,20 +173,24 @@ class VideoWorker(Thread):
         if self.vtool.is_displayable() and self.vtool.is_playing:
             container = self.vview.video_label_container
 
-            ratio_w = container.width() / self.vtool.frame_w
-            ratio_h = container.height() / self.vtool.frame_h
+            geometry = container.geometry()
+            ratio_w = geometry.width() / self.vtool.frame_w
+            ratio_h = geometry.height() / self.vtool.frame_h
             ratio = min(ratio_w, ratio_h)
+            # print(ratio)
 
             if self.vtool.border_detector.is_drawing:
                 frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
                                              int(self.vtool.frame_h * ratio),
                                              mode=cameramode.ORIGINAL,
                                              bgr_to_rgb=False)
+                print(1)
                 # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.imshow(self.vtool.border_detector.window_id,
                            self.vtool.border_detector.draw_regions(frame,
-                           self.vtool.color_borders,
+                           self.vtool.color_bad,
                            self.vtool.thickness_border))
+                print(2)
                 """if cv2.waitKey(self.vtool.freq_ms) == ord('q'):  # ??? HOWTO?
                     print('qq!')
                     self.vview.borders_btn.click()"""
@@ -307,6 +313,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 vview = self.videoviews[i]
 
                 self.mutexes[i].acquire()
+                print('accuired')
                 if vtool.border_detector.is_drawing:
                     vtool.border_detector.end_selecting_region()
                     vtool.is_borders_mode = vtool.border_detector.has_regions
@@ -320,10 +327,13 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                         vview.borders_btn.setText('Обозначить границы')
                     else:
                         vview.video_label.pixmap().fill(QColor(0, 0, 0))
+                        new_region = Region("New Region")
+                        vtool.border_detector.add_region(new_region)
                         vtool.border_detector.start_selecting_region(\
-                            str(datetime.now()))
+                            new_region, str(datetime.now()))
                         vview.borders_btn.setText('Сохранить границы')
                 self.mutexes[i].release()
+                print('released')
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
             self.mutexes.append(Lock())
@@ -473,7 +483,7 @@ def main():
     splash = Splash()
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
-    window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
+    #################window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,

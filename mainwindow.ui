@@ -267,19 +267,6 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
         </sizepolicy>
        </property>
        <layout class="QGridLayout" name="settings_layout">
-        <item row="0" column="1">
-         <widget class="QWidget" name="camera_preview_label_container" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background: white;</string>
-          </property>
-         </widget>
-        </item>
         <item row="1" column="1">
          <widget class="QStackedWidget" name="module_settings_panel">
           <property name="sizePolicy">
@@ -304,7 +291,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
            <string notr="true">background: white;</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>4</number>
           </property>
           <widget class="QWidget" name="detect_objects_settings_page">
            <layout class="QGridLayout" name="gridLayout_2">
@@ -686,6 +673,56 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
               </property>
              </widget>
             </item>
+            <item row="1" column="0">
+             <widget class="QListWidget" name="listWidget"/>
+            </item>
+            <item row="1" column="1">
+             <layout class="QVBoxLayout" name="verticalLayout_7">
+              <property name="spacing">
+               <number>8</number>
+              </property>
+              <item>
+               <widget class="QPushButton" name="pushButton">
+                <property name="text">
+                 <string>Добавить</string>
+                </property>
+                <property name="flat">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_2">
+                <property name="text">
+                 <string>Переименовать</string>
+                </property>
+                <property name="flat">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_3">
+                <property name="text">
+                 <string>Изменить</string>
+                </property>
+                <property name="flat">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_4">
+                <property name="text">
+                 <string>Удалить</string>
+                </property>
+                <property name="flat">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
            </layout>
           </widget>
          </widget>
@@ -748,7 +785,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>0</width>
+                 <width>32</width>
                  <height>32</height>
                 </size>
                </property>
@@ -782,7 +819,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>0</width>
+                 <width>32</width>
                  <height>32</height>
                 </size>
                </property>
@@ -816,7 +853,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>0</width>
+                 <width>32</width>
                  <height>32</height>
                 </size>
                </property>
@@ -850,7 +887,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>0</width>
+                 <width>32</width>
                  <height>32</height>
                 </size>
                </property>
@@ -1115,6 +1152,39 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
            </item>
           </layout>
          </widget>
+        </item>
+        <item row="0" column="1">
+         <layout class="QVBoxLayout" name="camera_preview_label_vbox">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetNoConstraint</enum>
+          </property>
+          <item>
+           <layout class="QHBoxLayout" name="camera_preview_label_hbox">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetNoConstraint</enum>
+            </property>
+            <item>
+             <widget class="QLabel" name="camera_preview_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background: black;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
