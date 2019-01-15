@@ -51,7 +51,7 @@ class BorderDetector:
         for region in self.regions:
             print(region)
             np_points = None
-            if self.is_drawing and self.next_point is not None:
+            if self.is_drawing and self.next_point is not None and region == self.curr_region:
                 if len(region.points) > 0:
                     np_points = np.append(region.points, [self.next_point], axis=0)
                 else:

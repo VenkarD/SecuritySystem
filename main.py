@@ -152,13 +152,11 @@ class VideoWorker(Thread):
     def run(self):
         try:
             while not self.stop_event.wait(timeout=0.001):
-                # time_start = datetime.now()
-                print('accuired2')
+                # time_start = datetime.now()                
                 self.mutex.acquire()
                 if not self.stop_event.wait(timeout=0.001):
                     self.tick()
                 self.mutex.release()
-                print('released2')
                 # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
                 # print(elapsed_ms, 'ms elapsed')
                 # time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
@@ -184,13 +182,11 @@ class VideoWorker(Thread):
                                              int(self.vtool.frame_h * ratio),
                                              mode=cameramode.ORIGINAL,
                                              bgr_to_rgb=False)
-                print(1)
                 # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 cv2.imshow(self.vtool.border_detector.window_id,
                            self.vtool.border_detector.draw_regions(frame,
                            self.vtool.color_bad,
                            self.vtool.thickness_border))
-                print(2)
                 """if cv2.waitKey(self.vtool.freq_ms) == ord('q'):  # ??? HOWTO?
                     print('qq!')
                     self.vview.borders_btn.click()"""
@@ -312,17 +308,16 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 vtool = self.videotools[i]
                 vview = self.videoviews[i]
 
-                self.mutexes[i].acquire()
-                print('accuired')
+                # self.mutexes[i].acquire()  # cv2.imshow() не дружит с многопоточностью
                 if vtool.border_detector.is_drawing:
                     vtool.border_detector.end_selecting_region()
-                    vtool.is_borders_mode = vtool.border_detector.has_regions
+                    vtool.is_borders_mode = len(vtool.border_detector.regions) > 0
                     vview.borders_btn.setText('Очистить границы'\
                                               if vtool.is_borders_mode else\
                                               'Обозначить границы')
                 else:
                     if vtool.is_borders_mode:
-                        vtool.border_detector.clear_points()
+                        # vtool.border_detector.clear_points()
                         vtool.is_borders_mode = False
                         vview.borders_btn.setText('Обозначить границы')
                     else:
@@ -332,8 +327,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                         vtool.border_detector.start_selecting_region(\
                             new_region, str(datetime.now()))
                         vview.borders_btn.setText('Сохранить границы')
-                self.mutexes[i].release()
-                print('released')
+                # self.mutexes[i].release()
 
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
             self.mutexes.append(Lock())

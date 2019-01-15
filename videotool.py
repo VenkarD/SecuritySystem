@@ -103,6 +103,7 @@ class VideoTool:
             colors = [self.color_motion] * count
 
         # TODO: менять ли цвет, если одновременно активен режим распознавания лиц (свой-чужой) и отмечены границы
+        print(self.is_borders_mode)
         if self.is_borders_mode:
             frame = self.border_detector.draw_regions(frame, self.color_bad, self.thickness_border)
             are_rects_in_regs = self.border_detector.are_rectangles_in_regions(list(boxes))
