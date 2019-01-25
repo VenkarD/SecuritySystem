@@ -49,7 +49,6 @@ class BorderDetector:
     def draw_regions(self, frame, color, thickness):
         #regions_frame = np.copy(frame)
         for region in self.regions:
-            print(region)
             np_points = None
             if self.is_drawing and self.next_point is not None and region == self.curr_region:
                 if len(region.points) > 0:
@@ -58,13 +57,11 @@ class BorderDetector:
                     np_points = np.array([self.next_point])
             else:
                 np_points = np.array(region.points)
-            print('Hoba')
 
             """for center_position in self.points:
                 cv2.circle(regions_frame, center_position, 2, (0, 0, 255), -1)"""
 
             cv2.polylines(frame, np.int32([np_points]), True, color, thickness)
-            print('wtf')
             """stencil = np.zeros(regions_frame.shape).astype(regions_frame.dtype)
             stencil[:] = (255, 255, 255) # далее белым по белому?
             if len(np_points) >= 3:
@@ -75,12 +72,15 @@ class BorderDetector:
     def are_rectangles_in_regions(self, rectangles):
         result = []
         for region in self.regions:
-            np_points = np.array(region.points)
-            for i in range(len(rectangles)):
-                result.append(in_region((rectangles[i][1] + rectangles[i][3]) / 2,
-                                        (rectangles[i][0] + rectangles[i][2]) / 2,
-                                        np_points[:, 0],
-                                        np_points[:, 1]))
+            if len(region.points) > 0:
+                np_points = np.array(region.points)
+                for j in range(2):
+                    print('np_points[:,{}] = {}'.format(j, np_points[:, j]))
+                for i in range(len(rectangles)):
+                    result.append(in_region((rectangles[i][1] + rectangles[i][3]) / 2,
+                                            (rectangles[i][0] + rectangles[i][2]) / 2,
+                                            np_points[:, 0],
+                                            np_points[:, 1]))
         return result
 
     def add_region(self, region):
@@ -102,11 +102,12 @@ class BorderDetector:
     def end_selecting_region(self):
         self.next_point = None
         self.is_drawing = False
-        print('Ending')
-        print(self.curr_region)
-        print(self.curr_region.points)
         if len(self.curr_region.points) < 3:
             self.curr_region.clear_points()
+            self.regions.remove(self.curr_region)
         cv2.destroyWindow(self.window_id)
         self.window_id = None
         self.curr_region = None
+
+    def clear_regions(self):
+        self.regions.clear()

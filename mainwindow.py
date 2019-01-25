@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -571,7 +571,7 @@ class Ui_MainWindow(object):
         self.label_9.setBuddy(self.camera_pos_col_span_spinbox)
 
         self.retranslateUi(MainWindow)
-        self.stacked_widget.setCurrentIndex(1)
+        self.stacked_widget.setCurrentIndex(0)
         self.module_settings_panel.setCurrentIndex(4)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

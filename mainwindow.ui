@@ -248,7 +248,7 @@ background-image: url(:/everything/resources/buttonBK.jpg);</string>
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="cameras_page">
        <property name="sizePolicy">

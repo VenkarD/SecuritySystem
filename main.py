@@ -39,7 +39,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-CAMERAS_COUNT = 1
+CAMERAS_COUNT = 3
 CONFIDENCE_LEVEL = 0.7  # HERE - нижний порог уверенности модели от 0 до 1.
                         # 0.7 - объект в кадре будет обведён рамкой, если
                         #       сеть уверена на 70% и выше
@@ -312,24 +312,28 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 if vtool.border_detector.is_drawing:
                     vtool.border_detector.end_selecting_region()
                     vtool.is_borders_mode = len(vtool.border_detector.regions) > 0
-                    vview.borders_btn.setText('Очистить границы'\
-                                              if vtool.is_borders_mode else\
-                                              'Обозначить границы')
+                    vview.borders_btn.setText('Добавить границы')
+                    vview.borders_clear_btn.setEnabled(True)
                 else:
-                    if vtool.is_borders_mode:
-                        # vtool.border_detector.clear_points()
-                        vtool.is_borders_mode = False
-                        vview.borders_btn.setText('Обозначить границы')
-                    else:
-                        vview.video_label.pixmap().fill(QColor(0, 0, 0))
-                        new_region = Region("New Region")
-                        vtool.border_detector.add_region(new_region)
-                        vtool.border_detector.start_selecting_region(\
+                    vview.video_label.pixmap().fill(QColor(0, 0, 0))
+                    new_region = Region("New Region")
+                    vtool.border_detector.add_region(new_region)
+                    vtool.border_detector.start_selecting_region(\
                             new_region, str(datetime.now()))
-                        vview.borders_btn.setText('Сохранить границы')
+                    vview.borders_btn.setText('Сохранить границы')
+                    vview.borders_clear_btn.setEnabled(False)
                 # self.mutexes[i].release()
-
             self.videoviews[i].borders_btn.clicked.connect(borders_slot)
+
+            def borders_clear_slot(event, i=i):
+                vtool = self.videotools[i]
+                vview = self.videoviews[i]
+
+                # self.mutexes[i].acquire()  # cv2.imshow() не дружит с многопоточностью
+                vtool.border_detector.clear_regions()
+                vtool.is_borders_mode = False
+                # self.mutexes[i].release()
+            self.videoviews[i].borders_clear_btn.clicked.connect(borders_clear_slot)
             self.mutexes.append(Lock())
 
         self.setWindowTitle('Security System')
@@ -477,7 +481,7 @@ def main():
     splash = Splash()
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
-    #################window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
+    window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,
