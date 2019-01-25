@@ -4,7 +4,7 @@ import numpy as np
 import cameramode
 from frame_analysis.face_recognizer import FaceRecognizer
 
-PROCESS_PERIOD = 1  # период обновления информации детекторами
+PROCESS_PERIOD = 5  # период обновления информации детекторами
 
 
 class VideoTool:
@@ -44,9 +44,9 @@ class VideoTool:
         # fourcc = cv2.VideoWriter_fourcc(*'XVID')
         # self.out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
 
-
-    def get_frame(self, width, height, mode=None, bgr_to_rgb=True):
-        retval, original = self.video.read()
+    def get_frame(self, original, width, height, mode=None, bgr_to_rgb=True):
+        if original is None:
+            retval, original = self.video.read()
         # TODO: обработать отсутствие кадра
         assert original is not None, 'Кадр не получен'
         if mode is None:
@@ -101,6 +101,8 @@ class VideoTool:
                     colors.append(self.color_good)
         elif self.mode == cameramode.DETECT_MOTION:
             colors = [self.color_motion] * count
+        else:
+            return frame
 
         # TODO: менять ли цвет, если одновременно активен режим распознавания лиц (свой-чужой) и отмечены границы
         print(self.is_borders_mode)
@@ -142,3 +144,4 @@ class VideoTool:
 
     def set_mode(self, mode):
         self.mode = mode
+        print('Mode is', self.mode)

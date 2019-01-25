@@ -2,6 +2,7 @@ import logging
 import sys
 import time
 import traceback
+import gc
 
 import cv2
 import tensorflow as tf
@@ -148,13 +149,28 @@ class VideoWorker(Thread):
         self.vview = videoview
         self.mutex = mutex
         self.stop_event = stop_event
-    
+
+        self.emergency_stop = False
+        self.last_frame = None
+        self.reader = Thread(target=self.read_stream, args=[stop_event])
+
+    def read_stream(self, stop_event):
+        print('{}: let\'s read the stream!'.format(self.getName()))
+        try:
+            while not stop_event.is_set() and not self.emergency_stop:
+                ret, self.last_frame = self.vtool.video.read()
+        except:
+            print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+        print('{}: done!'.format(self.getName()))
+
     def run(self):
+        self.reader.start()
         try:
             while not self.stop_event.wait(timeout=0.001):
-                # time_start = datetime.now()                
+            # while not self.stop_event.is_set():
+                # time_start = datetime.now()
                 self.mutex.acquire()
-                if not self.stop_event.wait(timeout=0.001):
+                if not self.stop_event.is_set() and self.last_frame is not None:
                     self.tick()
                 self.mutex.release()
                 # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
@@ -163,8 +179,10 @@ class VideoWorker(Thread):
             print('It\'s {}, goodbye!'.format(self.getName()))
         except:
             print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+            self.emergency_stop = True
             if self.mutex.locked():
                 self.mutex.release()
+        self.reader.join()
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
@@ -178,7 +196,8 @@ class VideoWorker(Thread):
             # print(ratio)
 
             if self.vtool.border_detector.is_drawing:
-                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                frame = self.vtool.get_frame(self.last_frame,
+                                             int(self.vtool.frame_w * ratio),
                                              int(self.vtool.frame_h * ratio),
                                              mode=cameramode.ORIGINAL,
                                              bgr_to_rgb=False)
@@ -191,14 +210,85 @@ class VideoWorker(Thread):
                     print('qq!')
                     self.vview.borders_btn.click()"""
             else:
-                frame = self.vtool.get_frame(int(self.vtool.frame_w * ratio), 
+                frame = self.vtool.get_frame(self.last_frame,
+                                             int(self.vtool.frame_w * ratio),
                                              int(self.vtool.frame_h * ratio))
                 frame = get_image_qt(frame)
                 self.vview.video_label.setPixmap(frame)
 
     def start(self):
         print('Hello, I\'m {}'.format(self.getName()))
+        self.emergency_stop = False
         super().start()
+
+
+class SecurityDetectorWorker(Thread):
+    def __init__(self, name, video_capture, object_detector,
+                 checking_period_sec, checking_burst, mutex, stop_event):
+        super().__init__(name=name)
+        self.video_capture = video_capture
+        self.object_detector = object_detector
+        self.checking_period_sec = checking_period_sec
+        self.checking_burst = checking_burst
+        self.mutex = mutex
+        self.stop_event = stop_event
+
+        self.security_prev_state = False
+        self.security_curr_state = False
+    
+    def run(self):
+        try:
+            self.tick()
+            while not self.stop_event.is_set():
+                waiting_start_time = datetime.now()
+                while (datetime.now() - waiting_start_time).seconds < self.checking_period_sec:
+                    self.video_capture.read()
+                    if self.stop_event.is_set():
+                        break;
+                # time_start = datetime.now()
+                self.mutex.acquire()
+                if not self.stop_event.is_set():
+                    self.tick()
+                self.mutex.release()
+                # elapsed_ms = (datetime.now() - time_start).microseconds / 1000
+                # print(elapsed_ms, 'ms elapsed')
+                # time.sleep(max(0, self.vtool.freq_ms - elapsed_ms) / 1000)
+            print('It\'s {}, goodbye!'.format(self.getName()))
+        except:
+            print('{} - unexpected error: {}'.format(self.getName(), traceback.format_exc()))
+            if self.mutex.locked():
+                self.mutex.release()
+
+    # Действия, которые выполняются над каждым кадром
+    def tick(self):
+        print('Let\'s check...')
+        self.security_prev_state = self.security_curr_state
+        self.security_curr_state = False
+        log_str = ''
+        for i in range(self.checking_burst):
+            if self.stop_event.is_set():
+                return
+
+            frame = self.video_capture.read()[1]
+            boxes, scores, classes = self.object_detector.process(frame)
+            if len(boxes) > 0:
+                self.security_curr_state = True
+                break
+
+        if self.security_curr_state != self.security_prev_state:
+            log_str = '{} - охранник {}'.format(datetime.now().\
+                    strftime('%d.%m.%y %H:%M'),\
+                    'на месте' if self.security_curr_state else 'отсутствует')
+
+        print('Log:', log_str)
+        if(log_str != ''):
+            with open('log.txt', 'a') as f:
+                f.write(log_str + '\r\n')
+
+    def start(self):
+        print('Hello, I\'m {}'.format(self.getName()))
+        super().start()
+
 
 
 class UI(QMainWindow, mainwindow.Ui_MainWindow):
@@ -212,6 +302,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.width360 = 1600
 
         vsrcs = [None] * 4
+        secsrc = None
         videosource = 'cameras'
         if len(sys.argv) > 1:
             videosource = sys.argv[1]
@@ -221,11 +312,13 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             vsrcs[1] = '../cat.mp4'
             vsrcs[2] = '../people.mp4'
             vsrcs[3] = '../people.mp4'
+            secsrc = '../people.mp4'
         else:
             vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             vsrcs[3] = 0
+            secsrc = 0
 
         vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
                         (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
@@ -276,10 +369,11 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         # Инициализация инструментария для каждого видеопотока
         self.videotools = []
         self.videoviews = []
-        # self.threads = []  # перенесено в start_threads
         self.mutexes = []
-        self.stop_threads_event = Event()
+
         # TODO: перенести создание объектов в потоки
+        self.stop_cam_threads_event = Event()
+
         for i in range(CAMERAS_COUNT):
             self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
@@ -336,6 +430,14 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.videoviews[i].borders_clear_btn.clicked.connect(borders_clear_slot)
             self.mutexes.append(Lock())
 
+        self.security_capture = cv2.VideoCapture(secsrc)
+        self.security_detector = ObjectDetector(detection_graph=detection_graph,
+                                                labels=labels,
+                                                classes_to_detect=[1],  # person
+                                                confidence_level=CONFIDENCE_LEVEL)
+        self.security_mutex = Lock()
+        self.stop_security_event = Event()
+
         self.setWindowTitle('Security System')
         self.settings_window = None
         self.log_window = None
@@ -364,6 +466,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def setup_handlers(self):
         self.cameras_btn.clicked.connect(self.show_cameras_page)
         self.refresh_btn.clicked.connect(self.refresh_cameras)
+        self.refresh_btn.clicked.connect(self.refresh_security_cam)
         self.settings_btn.clicked.connect(self.show_settings_page)
         self.log_btn.clicked.connect(self.log_open)
         self.exit_btn.clicked.connect(self.close)
@@ -374,28 +477,45 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         # self.rename_zone_camera_btn.clicked.connect(self.on_rename_zone_camera_btn_clicked)
 
     # Запускает обработку всех видеопотоков в отдельных потоках выполнения
-    def start_threads(self):
-        self.threads = []
+    def start_cam_threads(self):
+        self.cam_threads = []
         for i in range(CAMERAS_COUNT):
-            self.threads.append(VideoWorker('VideoWorker' + str(i),
-                                            self.videotools[i],
-                                            self.videoviews[i],
-                                            self.mutexes[i],
-                                            self.stop_threads_event))
-            self.threads[i].start()
+            self.cam_threads.append(VideoWorker('VideoWorker' + str(i),
+                                                self.videotools[i],
+                                                self.videoviews[i],
+                                                self.mutexes[i],
+                                                self.stop_cam_threads_event))
+            self.cam_threads[i].start()
+
+    def start_security_thread(self):
+        self.security_thread = SecurityDetectorWorker(name='SecurityDetector',
+                                                      video_capture=self.security_capture,
+                                                      object_detector=self.security_detector,
+                                                      checking_period_sec=10,
+                                                      checking_burst=5,
+                                                      mutex=self.security_mutex,
+                                                      stop_event=self.stop_security_event)
+        self.security_thread.start()
 
     # Сообщает всем отдельным потокам выполнения, что обработка больше не нужна
-    def stop_threads(self):
-        """for i in range(CAMERAS_COUNT):
-            self.threads[i].stop_gracefully()"""
-        self.stop_threads_event.set()
+    def stop_cam_threads(self):
+        self.stop_cam_threads_event.set()
 
-    def stop_threads_and_wait(self):
-        self.stop_threads()
+    def stop_security_thread(self):
+        self.stop_security_event.set()
+
+    def stop_cam_threads_and_wait(self):
+        self.stop_cam_threads()
+
         for i in range(CAMERAS_COUNT):
-            self.threads[i].join()
-            print('Goodbye, {}!'.format(self.threads[i].getName()))
-        print('All side threads are stopped')
+            self.cam_threads[i].join()
+            print('Goodbye, {}!'.format(self.cam_threads[i].getName()))
+        print('All camera threads are stopped')
+
+    def stop_security_thread_and_wait(self):
+        self.stop_security_thread()
+        self.security_thread.join()
+        print('Goodbye, {}!'.format(self.security_thread.getName()))
 
     def show_cameras_page(self, event):
         self.stacked_widget.setCurrentWidget(self.cameras_page)
@@ -416,9 +536,14 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.log_window.textEdit.setPlainText(mytext)
 
     def refresh_cameras(self):
-        self.stop_threads_and_wait()
-        self.stop_threads_event.clear()
-        self.start_threads()
+        self.stop_cam_threads_and_wait()
+        self.stop_cam_threads_event.clear()
+        self.start_cam_threads()
+
+    def refresh_security_cam(self):
+        self.stop_security_thread_and_wait()
+        self.stop_security_event.clear()
+        self.start_security_thread()
 
     def on_add_zone_btn_clicked(self, event):
         name, dialog_result = QInputDialog.getText(self, 'Добавление зоны',
@@ -442,7 +567,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         selected = self.cameras_treeview.selectedItems()[0]
         renaming_of_what = 'камеры' if selected.parent() else 'зоны'
         name, dialog_result = QInputDialog.getText(self, 'Переименование {}'.format(renaming_of_what),
-                                            'Введите название {}:'.format(renaming_of_what))
+                'Введите название {}:'.format(renaming_of_what))
         if dialog_result and len(name) > 0:
             selected.setText(0, name)
 
@@ -450,8 +575,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         selected = self.cameras_treeview.selectedItems()[0]
         removing_of_what = 'камеру' if selected.parent() else 'зону'
         dialog_result = QMessageBox.question(self, 'Подтвердите действие',
-                                     'Вы действительно хотите удалить {} из списка?'.format(removing_of_what),
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                'Вы действительно хотите удалить {} из списка?'.format(removing_of_what),
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if dialog_result == QMessageBox.Yes:
             (selected.parent() or self.cameras_treeview.invisibleRootItem()).removeChild(selected)
 
@@ -460,16 +585,21 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
 
     def closeEvent(self, event):
         dialog_result = QMessageBox.question(self, 'Подтвердите действие',
-                                     'Вы действительно хотите закрыть охранную систему?',
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                'Вы действительно хотите закрыть охранную систему?',
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if dialog_result == QMessageBox.Yes:
-            self.stop_threads_and_wait()
-            self.stop_threads_event.clear()
+            self.stop_cam_threads_and_wait()
+            self.stop_cam_threads_event.clear()
+
             for i in range(CAMERAS_COUNT):
                 # self.mutexes[i].acquire()
-                # self.threads[i].stop_gracefully()
+                # self.cam_threads[i].stop_gracefully()
                 self.videotools[i].close()
                 # self.mutexes[i].release()
+
+            self.stop_security_thread_and_wait()
+            self.stop_cam_threads_event.clear()
+            self.security_capture.release()
             if len(self.videotools) > 0:
                 self.videotools[0].object_detector.close()
             event.accept()
@@ -488,8 +618,10 @@ def main():
     #              QBrush(QPixmap("resources/Fone.jpg")))
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
+    window.start_cam_threads()
+    window.start_security_thread()
+    time.sleep(2)
     window.show()  # Показываем окно
-    window.start_threads()
     splash.finish(window)
     app.exec_()  # и запускаем прило
 
