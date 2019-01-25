@@ -143,16 +143,73 @@ class SecondWindow(QWidget):
 
 
 class VideoWorker(Thread):
-    def __init__(self, name, videotool, videoview, mutex, stop_event):
+    def __init__(self, idx, name, video_source, vv_positions, videotools, videoviews,
+                 mutexes, stop_event, parent_window, cameras_layout, known_face_encodings,
+                 known_face_names, detection_graph, labels):
         super().__init__(name=name)
-        self.vtool = videotool
-        self.vview = videoview
-        self.mutex = mutex
+
+        def on_mode_cb_changed(index):
+            if index == cameramode.DETECT_OBJECTS:
+                self.vtool.object_detector.classes_to_detect = CLASSES_TO_DETECT_MANCATDOG
+            elif index == cameramode.DETECT_VEHICLES:
+                self.vtool.object_detector.classes_to_detect = CLASSES_TO_DETECT_VEHICLES
+            self.vtool.set_mode(index)
+
+
+        def borders_slot(event):
+            # self.mutex.acquire()  # cv2.imshow() не дружит с многопоточностью
+            if self.vtool.border_detector.is_drawing:
+                self.vtool.border_detector.end_selecting_region()
+                self.vtool.is_borders_mode = len(self.vtool.border_detector.regions) > 0
+                self.vview.borders_btn.setText('Добавить границы')
+                self.vview.borders_clear_btn.setEnabled(True)
+            else:
+                self.vview.video_label.pixmap().fill(QColor(0, 0, 0))
+                new_region = Region("New Region")
+                self.vtool.border_detector.add_region(new_region)
+                self.vtool.border_detector.start_selecting_region(\
+                        new_region, str(datetime.now()))
+                self.vview.borders_btn.setText('Сохранить границы')
+                self.vview.borders_clear_btn.setEnabled(False)
+            # self.mutex.release()
+
+        def borders_clear_slot(event):
+            vtool = self.vtool
+            vview = self.vview
+
+            # self.mutex.acquire()  # cv2.imshow() не дружит с многопоточностью
+            vtool.border_detector.clear_regions()
+            vtool.is_borders_mode = False
+            # self.mutex.release()
+
+        if videoviews is not None:
+            self.vview = VideoView(parent_window, caption='Камера №'+str(idx+1))
+            videoviews.append(self.vview)
+            row, col, w, h = vv_positions
+            cameras_layout.addWidget(self.vview, row, col, h, w)
+            self.vview.mode_cb.currentIndexChanged.connect(on_mode_cb_changed)
+            self.vview.borders_btn.clicked.connect(borders_slot)
+            self.vview.borders_clear_btn.clicked.connect(borders_clear_slot)
+
+        self.vtool = VideoTool(src=video_source, init_fc=idx)
+        self.mutex = Lock()
         self.stop_event = stop_event
 
         self.emergency_stop = False
         self.last_frame = None
         self.reader = Thread(target=self.read_stream, args=[stop_event])
+        """ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"""
+
+        videotools.append(self.vtool)
+        self.vtool.object_detector = ObjectDetector(detection_graph=detection_graph,
+                                                    labels=labels,
+                                                    classes_to_detect=CLASSES_TO_DETECT_MANCATDOG,
+                                                    confidence_level=CONFIDENCE_LEVEL)
+        self.vtool.border_detector = BorderDetector()
+        self.vtool.motion_detector = MotionDetector()
+        self.vtool.face_recognizer = FaceRecognizer(known_face_encodings, known_face_names)
+
+        mutexes.append(self.mutex)
 
     def read_stream(self, stop_event):
         print('{}: let\'s read the stream!'.format(self.getName()))
@@ -301,26 +358,26 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.width_standard = 1200
         self.width360 = 1600
 
-        vsrcs = [None] * 4
+        self.vsrcs = [None] * 4
         secsrc = None
         videosource = 'cameras'
         if len(sys.argv) > 1:
             videosource = sys.argv[1]
 
         if (videosource == 'files'):
-            vsrcs[0] = '../people.mp4'
-            vsrcs[1] = '../cat.mp4'
-            vsrcs[2] = '../people.mp4'
-            vsrcs[3] = '../people.mp4'
+            self.vsrcs[0] = '../people.mp4'
+            self.vsrcs[1] = '../cat.mp4'
+            self.vsrcs[2] = '../people.mp4'
+            self.vsrcs[3] = '../people.mp4'
             secsrc = '../people.mp4'
         else:
-            vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            vsrcs[3] = 0
+            self.vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            self.vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            self.vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            self.vsrcs[3] = 0
             secsrc = 0
 
-        vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
+        self.vv_positions = [(1, 1, 1, 1),  # Позиции создаваемых VideoView в сетке
                         (1, 2, 1, 1),  # (строка, столбец, ширина, высота)
                         (2, 1, 2 if CAMERAS_COUNT == 3 else 1, 1),
                         (2, 2, 1, 1)
@@ -328,24 +385,24 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
 
         model_name = 'nn_model'  # faster_rcnn_inception_v2_coco_2018_01_28
         model_path = model_name + '/frozen_inference_graph.pb'
-        detection_graph = tf.Graph()
-        with detection_graph.as_default():
+        self.detection_graph = tf.Graph()
+        with self.detection_graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(model_path, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
-        labels = []
+        self.labels = []
         labels_path = 'classes_en.txt'  # HERE - файл с подписями для классов
         with open(labels_path) as f:
-            labels = f.readlines()
-        labels = [s.strip() for s in labels]
+            self.labels = f.readlines()
+        self.labels = [s.strip() for s in self.labels]
 
         # Фотографии и имена для распознавания лиц
         # TODO: работать через БД
         faces_folder = 'faces'
-        known_face_photos = [
+        self.known_face_photos = [
             'Bogdan.jpg', 
             'Bogdan_1.jpg',
             'Egor_2.jpg',
@@ -354,10 +411,10 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             'Tima_2.jpg',
             'biden.jpg'
         ]
-        known_face_encodings = [FaceRecognizer.get_face_encoding(cv2.imread(
+        self.known_face_encodings = [FaceRecognizer.get_face_encoding(cv2.imread(
                                 faces_folder + '/' + face)) 
-                                for face in known_face_photos]
-        known_face_names = [
+                                for face in self.known_face_photos]
+        self.known_face_names = [
             "Bogdan",
             "Bogdan",
             "Egor",
@@ -375,7 +432,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
         self.stop_cam_threads_event = Event()
 
         for i in range(CAMERAS_COUNT):
-            self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
+            """self.videotools.append(VideoTool(src=vsrcs[i], init_fc=i))
             self.videotools[i].object_detector = ObjectDetector(detection_graph=detection_graph,
                                                                 labels=labels,
                                                                 classes_to_detect=CLASSES_TO_DETECT_MANCATDOG,
@@ -428,13 +485,13 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 vtool.is_borders_mode = False
                 # self.mutexes[i].release()
             self.videoviews[i].borders_clear_btn.clicked.connect(borders_clear_slot)
-            self.mutexes.append(Lock())
+            self.mutexes.append(Lock())"""
 
-        self.security_capture = cv2.VideoCapture(secsrc)
-        self.security_detector = ObjectDetector(detection_graph=detection_graph,
+        # self.security_capture = cv2.VideoCapture(secsrc)
+        """self.security_detector = ObjectDetector(detection_graph=detection_graph,
                                                 labels=labels,
                                                 classes_to_detect=[1],  # person
-                                                confidence_level=CONFIDENCE_LEVEL)
+                                                confidence_level=CONFIDENCE_LEVEL)"""
         self.security_mutex = Lock()
         self.stop_security_event = Event()
 
@@ -466,7 +523,7 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def setup_handlers(self):
         self.cameras_btn.clicked.connect(self.show_cameras_page)
         self.refresh_btn.clicked.connect(self.refresh_cameras)
-        self.refresh_btn.clicked.connect(self.refresh_security_cam)
+        # self.refresh_btn.clicked.connect(self.refresh_security_cam)
         self.settings_btn.clicked.connect(self.show_settings_page)
         self.log_btn.clicked.connect(self.log_open)
         self.exit_btn.clicked.connect(self.close)
@@ -480,11 +537,25 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
     def start_cam_threads(self):
         self.cam_threads = []
         for i in range(CAMERAS_COUNT):
-            self.cam_threads.append(VideoWorker('VideoWorker' + str(i),
+            """self.cam_threads.append(VideoWorker('VideoWorker' + str(i),
                                                 self.videotools[i],
                                                 self.videoviews[i],
                                                 self.mutexes[i],
-                                                self.stop_cam_threads_event))
+                                                self.stop_cam_threads_event))"""
+            self.cam_threads.append(VideoWorker(idx=i,
+                                                name='VideoWorker' + str(i),
+                                                video_source=self.vsrcs[i],
+                                                vv_positions=self.vv_positions[i],
+                                                videotools=self.videotools,
+                                                videoviews=self.videoviews,
+                                                mutexes=self.mutexes,
+                                                stop_event=self.stop_cam_threads_event,
+                                                parent_window=self,
+                                                cameras_layout=self.cameras_layout,
+                                                known_face_encodings=self.known_face_encodings,
+                                                known_face_names=self.known_face_names,
+                                                detection_graph=self.detection_graph,
+                                                labels=self.labels))
             self.cam_threads[i].start()
 
     def start_security_thread(self):
@@ -597,9 +668,9 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
                 self.videotools[i].close()
                 # self.mutexes[i].release()
 
-            self.stop_security_thread_and_wait()
+            # self.stop_security_thread_and_wait()
             self.stop_cam_threads_event.clear()
-            self.security_capture.release()
+            # self.security_capture.release()
             if len(self.videotools) > 0:
                 self.videotools[0].object_detector.close()
             event.accept()
@@ -611,7 +682,7 @@ def main():
     splash = Splash()
     splash.show()
     window = UI()  # Создаём объект класса ExampleApp
-    window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
+    #window.videotools[0].object_detector.process(np.zeros((1, 1, 3)))
     #window.setWindowOpacity(0.5)
     # pal = window.palette()
     # pal.setBrush(QPalette.Normal, QPalette.Background,
@@ -619,7 +690,7 @@ def main():
     # window.setPalette(pal)
     # window.setAutoFillBackground(True)
     window.start_cam_threads()
-    window.start_security_thread()
+    # window.start_security_thread()
     time.sleep(2)
     window.show()  # Показываем окно
     splash.finish(window)
