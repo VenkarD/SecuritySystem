@@ -141,6 +141,8 @@ class VideoTool:
 
     def close(self):
         self.video.release()
+        if self.object_detector is not None:
+            self.object_detector.close()
 
     def set_mode(self, mode):
         self.mode = mode

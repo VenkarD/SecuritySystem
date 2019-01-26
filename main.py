@@ -182,11 +182,13 @@ class VideoWorker(Thread):
             vtool.is_borders_mode = False
             # self.mutex.release()
 
-        if videoviews is not None:
+        self.videoviews = videoviews
+        if self.videoviews is not None:
             self.vview = VideoView(parent_window, caption='Камера №'+str(idx+1))
-            videoviews.append(self.vview)
+            self.videoviews.append(self.vview)
             row, col, w, h = vv_positions
-            cameras_layout.addWidget(self.vview, row, col, h, w)
+            self.cameras_layout = cameras_layout
+            self.cameras_layout.addWidget(self.vview, row, col, h, w)
             self.vview.mode_cb.currentIndexChanged.connect(on_mode_cb_changed)
             self.vview.borders_btn.clicked.connect(borders_slot)
             self.vview.borders_clear_btn.clicked.connect(borders_clear_slot)
@@ -200,7 +202,8 @@ class VideoWorker(Thread):
         self.reader = Thread(target=self.read_stream, args=[stop_event])
         """ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"ф"""
 
-        videotools.append(self.vtool)
+        self.videotools = videotools
+        self.videotools.append(self.vtool)
         self.vtool.object_detector = ObjectDetector(detection_graph=detection_graph,
                                                     labels=labels,
                                                     classes_to_detect=CLASSES_TO_DETECT_MANCATDOG,
@@ -209,7 +212,8 @@ class VideoWorker(Thread):
         self.vtool.motion_detector = MotionDetector()
         self.vtool.face_recognizer = FaceRecognizer(known_face_encodings, known_face_names)
 
-        mutexes.append(self.mutex)
+        self.mutexes = mutexes
+        self.mutexes.append(self.mutex)
 
     def read_stream(self, stop_event):
         print('{}: let\'s read the stream!'.format(self.getName()))
@@ -240,6 +244,7 @@ class VideoWorker(Thread):
             if self.mutex.locked():
                 self.mutex.release()
         self.reader.join()
+        self.on_stop()
 
     # Действия, которые выполняются над каждым кадром
     def tick(self):
@@ -277,6 +282,17 @@ class VideoWorker(Thread):
         print('Hello, I\'m {}'.format(self.getName()))
         self.emergency_stop = False
         super().start()
+
+    # Выполняется один раз при корректном завершении работы потока
+    def on_stop(self):
+        self.vtool.close()
+        self.mutexes.remove(self.mutex)
+        self.videotools.remove(self.vtool)
+        if self.videoviews is not None:
+            self.videoviews.remove(self.vview)
+            self.cameras_layout.removeWidget(self.vview)
+            self.vview.deleteLater()
+            self.vview = None
 
 
 class SecurityDetectorWorker(Thread):
@@ -371,8 +387,8 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.vsrcs[3] = '../people.mp4'
             secsrc = '../people.mp4'
         else:
-            self.vsrcs[0] = 'rtsp://192.168.1.203:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
-            self.vsrcs[1] = 'rtsp://192.168.1.135:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            self.vsrcs[0] = 'rtsp://192.168.1.192:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+            self.vsrcs[1] = 'rtsp://192.168.1.239:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             self.vsrcs[2] = 'rtsp://192.168.1.163:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
             self.vsrcs[3] = 0
             secsrc = 0
@@ -662,10 +678,10 @@ class UI(QMainWindow, mainwindow.Ui_MainWindow):
             self.stop_cam_threads_and_wait()
             self.stop_cam_threads_event.clear()
 
-            for i in range(CAMERAS_COUNT):
+            # for i in range(CAMERAS_COUNT):
                 # self.mutexes[i].acquire()
                 # self.cam_threads[i].stop_gracefully()
-                self.videotools[i].close()
+                # self.videotools[i].close()
                 # self.mutexes[i].release()
 
             # self.stop_security_thread_and_wait()
